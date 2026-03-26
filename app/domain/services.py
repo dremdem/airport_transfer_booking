@@ -7,6 +7,10 @@ import app.domain.enums as enums
 import app.domain.exceptions as exceptions
 import app.domain.models as models
 
+# TYPE_CHECKING is False at runtime, so this import never executes in production.
+# It exists only for static type checkers (mypy/pyright) to resolve the type hint
+# on BookingService.__init__. Importing repository unconditionally would create a
+# circular dependency once database.repository imports from domain in later phases.
 if typing.TYPE_CHECKING:
     import app.database.repository as repository
 
@@ -17,8 +21,6 @@ class BookingService:
 
     Receives a repository via constructor injection so it can be tested
     with a mock repository without touching the database.
-
-    :param repo: data access object implementing the booking repository interface
     """
     def __init__(self, repo: "repository.BookingRepository") -> None:
         """
@@ -30,12 +32,23 @@ class BookingService:
 
     def create(self, booking_input: models.BookingInput) -> models.Booking:
         """
-        Create a new booking with PENDING status.
+        Create a new booking and enforce that it starts with PENDING status.
+
+        The PENDING-on-creation rule is a domain invariant. The service verifies
+        it after the repository call so the rule is owned by the domain layer,
+        not delegated silently to persistence.
 
         :param booking_input: validated input data from the application layer
         :return: persisted Booking domain entity
+        :raises InvalidStatusTransitionError: if the repository violates the PENDING invariant
         """
-        return self._repo.create(booking_input)
+        booking = self._repo.create(booking_input)
+        if booking.status != enums.BookingStatus.PENDING:
+            raise exceptions.InvalidStatusTransitionError(
+                from_status="(none)",
+                to_status=booking.status.value,
+            )
+        return booking
 
     def get_by_id(self, booking_id: int) -> models.Booking:
         """

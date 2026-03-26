@@ -50,25 +50,38 @@ def make_service(booking: models.Booking | None = None) -> services.BookingServi
     return services.BookingService(repo)
 
 
+BOOKING_INPUT = models.BookingInput(
+    passenger_name="Alice Smith",
+    flight_number="BA123",
+    pickup_time=datetime.datetime(2025, 6, 1, 10, 0),
+    pickup_location="Heathrow T2",
+    dropoff_location="City Hotel",
+)
+
+
 class TestCreateBooking:
     """Tests for BookingService.create."""
 
     def test_create_booking_sets_pending(self):
         """
-        New bookings must always start with PENDING status regardless of input.
+        New bookings return with PENDING status when the repository honours the contract.
 
         :return: None
         """
-        service = make_service()
-        booking_input = models.BookingInput(
-            passenger_name="Alice Smith",
-            flight_number="BA123",
-            pickup_time=datetime.datetime(2025, 6, 1, 10, 0),
-            pickup_location="Heathrow T2",
-            dropoff_location="City Hotel",
-        )
-        result = service.create(booking_input)
+        service = make_service(make_booking(status=enums.BookingStatus.PENDING))
+        result = service.create(BOOKING_INPUT)
         assert result.status == enums.BookingStatus.PENDING
+
+    def test_create_raises_if_repo_returns_non_pending(self):
+        """
+        Service raises InvalidStatusTransitionError if the repository violates the
+        PENDING-on-creation invariant, proving the rule lives in the domain layer.
+
+        :return: None
+        """
+        service = make_service(make_booking(status=enums.BookingStatus.CONFIRMED))
+        with pytest.raises(exceptions.InvalidStatusTransitionError):
+            service.create(BOOKING_INPUT)
 
 
 class TestStatusTransitions:

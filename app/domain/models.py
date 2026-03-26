@@ -17,12 +17,6 @@ class BookingInput:
 
     Passed from the application layer to the domain service after mapping
     from the API request schema.
-
-    :param passenger_name: full name of the passenger
-    :param flight_number: flight identifier string
-    :param pickup_time: scheduled pickup datetime
-    :param pickup_location: pickup address or terminal description
-    :param dropoff_location: dropoff address or terminal description
     """
     passenger_name: str
     flight_number: str
@@ -33,19 +27,7 @@ class BookingInput:
 
 @dataclasses.dataclass
 class Booking:
-    """
-    Full booking domain entity including identity and current state.
-
-    :param id: numeric primary key
-    :param passenger_name: full name of the passenger
-    :param flight_number: flight identifier string
-    :param pickup_time: scheduled pickup datetime
-    :param pickup_location: pickup address or terminal description
-    :param dropoff_location: dropoff address or terminal description
-    :param status: current lifecycle status
-    :param created_at: timestamp when the booking was created
-    :param updated_at: timestamp of the last update
-    """
+    """Full booking domain entity including identity and current state."""
     id: int
     passenger_name: str
     flight_number: str
