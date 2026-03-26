@@ -44,21 +44,24 @@ class BookingRepository:
             updated_at=orm_booking.updated_at,
         )
 
-    def create(self, booking_input: domain_models.BookingInput) -> domain_models.Booking:
+    def create(self, booking_create: domain_models.BookingCreate) -> domain_models.Booking:
         """
-        Persist a new booking with PENDING status and return the domain entity.
+        Persist a new booking from a service-layer command and return the domain entity.
 
-        :param booking_input: validated input data from the application layer
+        The repository does not enforce any status rules — it persists exactly
+        the state provided in ``booking_create``.
+
+        :param booking_create: internal command object constructed by the service layer
         :return: persisted Booking domain entity with assigned id and timestamps
         """
         now = datetime.datetime.utcnow()
         orm_booking = db_models.BookingORM(
-            passenger_name=booking_input.passenger_name,
-            flight_number=booking_input.flight_number,
-            pickup_time=booking_input.pickup_time,
-            pickup_location=booking_input.pickup_location,
-            dropoff_location=booking_input.dropoff_location,
-            status=enums.BookingStatus.PENDING.value,
+            passenger_name=booking_create.passenger_name,
+            flight_number=booking_create.flight_number,
+            pickup_time=booking_create.pickup_time,
+            pickup_location=booking_create.pickup_location,
+            dropoff_location=booking_create.dropoff_location,
+            status=booking_create.status.value,
             created_at=now,
             updated_at=now,
         )

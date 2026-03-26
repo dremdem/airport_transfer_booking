@@ -7,12 +7,13 @@ import app.domain.enums as enums
 import app.domain.models as domain_models
 
 
-BOOKING_INPUT = domain_models.BookingInput(
+BOOKING_CREATE = domain_models.BookingCreate(
     passenger_name="Alice Smith",
     flight_number="BA123",
     pickup_time=datetime.datetime(2025, 6, 1, 10, 0),
     pickup_location="Heathrow T2",
     dropoff_location="City Hotel",
+    status=enums.BookingStatus.PENDING,
 )
 
 
@@ -25,7 +26,7 @@ class TestCreate:
 
         :return: None
         """
-        result = repo.create(BOOKING_INPUT)
+        result = repo.create(BOOKING_CREATE)
         assert result.id is not None
         assert result.passenger_name == "Alice Smith"
         assert result.flight_number == "BA123"
@@ -38,7 +39,7 @@ class TestCreate:
 
         :return: None
         """
-        result = repo.create(BOOKING_INPUT)
+        result = repo.create(BOOKING_CREATE)
         assert result.status == enums.BookingStatus.PENDING
 
     def test_create_sets_timestamps(self, repo):
@@ -47,7 +48,7 @@ class TestCreate:
 
         :return: None
         """
-        result = repo.create(BOOKING_INPUT)
+        result = repo.create(BOOKING_CREATE)
         assert result.created_at is not None
         assert result.updated_at is not None
 
@@ -57,7 +58,7 @@ class TestCreate:
 
         :return: None
         """
-        result = repo.create(BOOKING_INPUT)
+        result = repo.create(BOOKING_CREATE)
         db_session.expire_all()
         orm_row = db_session.get(db_models.BookingORM, result.id)
         assert orm_row is not None
@@ -73,7 +74,7 @@ class TestGetById:
 
         :return: None
         """
-        created = repo.create(BOOKING_INPUT)
+        created = repo.create(BOOKING_CREATE)
         result = repo.get_by_id(created.id)
         assert result is not None
         assert result.id == created.id
@@ -98,7 +99,7 @@ class TestListByDate:
 
         :return: None
         """
-        repo.create(BOOKING_INPUT)
+        repo.create(BOOKING_CREATE)
         result = repo.list_by_date(datetime.date(2025, 6, 1))
         assert len(result) == 1
         assert result[0].passenger_name == "Alice Smith"
@@ -109,7 +110,7 @@ class TestListByDate:
 
         :return: None
         """
-        repo.create(BOOKING_INPUT)
+        repo.create(BOOKING_CREATE)
         result = repo.list_by_date(datetime.date(2025, 6, 2))
         assert len(result) == 0
 
@@ -119,15 +120,16 @@ class TestListByDate:
 
         :return: None
         """
-        second_input = domain_models.BookingInput(
+        second = domain_models.BookingCreate(
             passenger_name="Bob Jones",
             flight_number="LH456",
             pickup_time=datetime.datetime(2025, 6, 1, 14, 30),
             pickup_location="Gatwick N",
             dropoff_location="Another Hotel",
+            status=enums.BookingStatus.PENDING,
         )
-        repo.create(BOOKING_INPUT)
-        repo.create(second_input)
+        repo.create(BOOKING_CREATE)
+        repo.create(second)
         result = repo.list_by_date(datetime.date(2025, 6, 1))
         assert len(result) == 2
 
@@ -141,7 +143,7 @@ class TestUpdateStatus:
 
         :return: None
         """
-        created = repo.create(BOOKING_INPUT)
+        created = repo.create(BOOKING_CREATE)
         result = repo.update_status(
             created.id,
             enums.BookingStatus.CONFIRMED,
@@ -155,7 +157,7 @@ class TestUpdateStatus:
 
         :return: None
         """
-        created = repo.create(BOOKING_INPUT)
+        created = repo.create(BOOKING_CREATE)
         repo.update_status(
             created.id,
             enums.BookingStatus.CONFIRMED,
@@ -177,7 +179,7 @@ class TestUpdateStatus:
 
         :return: None
         """
-        created = repo.create(BOOKING_INPUT)
+        created = repo.create(BOOKING_CREATE)
         result = repo.update_status(
             created.id,
             enums.BookingStatus.CONFIRMED,
@@ -191,7 +193,7 @@ class TestUpdateStatus:
 
         :return: None
         """
-        created = repo.create(BOOKING_INPUT)
+        created = repo.create(BOOKING_CREATE)
         repo.update_status(created.id, enums.BookingStatus.CONFIRMED, enums.BookingStatus.PENDING)
         repo.update_status(created.id, enums.BookingStatus.COMPLETED, enums.BookingStatus.CONFIRMED)
         db_session.expire_all()

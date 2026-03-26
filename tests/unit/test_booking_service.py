@@ -62,9 +62,9 @@ BOOKING_INPUT = models.BookingInput(
 class TestCreateBooking:
     """Tests for BookingService.create."""
 
-    def test_create_booking_sets_pending(self):
+    def test_create_returns_pending_booking(self):
         """
-        New bookings return with PENDING status when the repository honours the contract.
+        Service returns the booking produced by the repository.
 
         :return: None
         """
@@ -72,16 +72,20 @@ class TestCreateBooking:
         result = service.create(BOOKING_INPUT)
         assert result.status == enums.BookingStatus.PENDING
 
-    def test_create_raises_if_repo_returns_non_pending(self):
+    def test_create_passes_pending_status_to_repo(self):
         """
-        Service raises InvalidStatusTransitionError if the repository violates the
-        PENDING-on-creation invariant, proving the rule lives in the domain layer.
+        Service actively sets PENDING when constructing the BookingCreate command,
+        proving the invariant lives in the domain layer rather than in the repository.
 
         :return: None
         """
-        service = make_service(make_booking(status=enums.BookingStatus.CONFIRMED))
-        with pytest.raises(exceptions.InvalidStatusTransitionError):
-            service.create(BOOKING_INPUT)
+        repo = unittest.mock.MagicMock()
+        repo.create.return_value = make_booking(status=enums.BookingStatus.PENDING)
+        service = services.BookingService(repo)
+        service.create(BOOKING_INPUT)
+        call_arg = repo.create.call_args[0][0]
+        assert isinstance(call_arg, models.BookingCreate)
+        assert call_arg.status == enums.BookingStatus.PENDING
 
 
 class TestStatusTransitions:
