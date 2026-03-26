@@ -54,7 +54,7 @@ class BookingRepository:
         :param booking_create: internal command object constructed by the service layer
         :return: persisted Booking domain entity with assigned id and timestamps
         """
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
         orm_booking = db_models.BookingORM(
             passenger_name=booking_create.passenger_name,
             flight_number=booking_create.flight_number,
@@ -123,7 +123,7 @@ class BookingRepository:
         :param old_status: the current status before transition (written to history)
         :return: updated Booking domain entity
         """
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
         orm_booking = self._db.get(db_models.BookingORM, booking_id)
         orm_booking.status = new_status.value
         orm_booking.updated_at = now
