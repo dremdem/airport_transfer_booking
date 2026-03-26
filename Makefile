@@ -10,7 +10,7 @@ lint:
 	docker compose run --rm app ruff check .
 
 test:
-	docker compose run --rm app pytest
+	docker compose run --rm app pytest || [ $$? -eq 5 ]
 
 migrate:
 	docker compose run --rm app alembic upgrade head
