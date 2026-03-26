@@ -428,7 +428,9 @@ Test domain layer behaviour in isolation — no database, no HTTP, no I/O.
 
 Test the full request cycle: HTTP → route → service → repository → MySQL → response.
 
-Tests run against a real MySQL instance (from Docker Compose). Each test runs inside a transaction that rolls back after the test — fast execution, full isolation, no cleanup logic.
+Tests run against a real MySQL instance (from Docker Compose).
+
+**Isolation strategy:** Transaction rollback covers the main session (booking and booking_status_history writes), but it cannot reach the background task's independent `SessionLocal` commit. To prevent `notification_log` rows from leaking between tests and causing order-dependent failures, the notification writer is overridden with a no-op in the test fixture — either via FastAPI dependency override or by patching `integration.notifications.send_notification`. This keeps the rollback strategy intact and keeps integration tests focused on the HTTP → domain → DB flow rather than notification side-effects.
 
 | Test | What it validates |
 |------|-------------------|
