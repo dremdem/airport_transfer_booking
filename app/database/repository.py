@@ -1,4 +1,136 @@
-"""BookingRepository — data access layer.
+"""BookingRepository — data access layer for booking persistence operations."""
 
-Full implementation is added in Phase 3.
-"""
+import datetime
+
+import sqlalchemy.orm
+
+import app.database.models as db_models
+import app.domain.enums as enums
+import app.domain.models as domain_models
+
+
+class BookingRepository:
+    """
+    Provides CRUD and query operations for bookings backed by SQLAlchemy.
+
+    All methods return domain model objects; ORM rows are never exposed outside
+    this class, keeping the domain layer free of SQLAlchemy dependencies.
+    """
+
+    def __init__(self, db: sqlalchemy.orm.Session) -> None:
+        """
+        Initialise the repository with an injected SQLAlchemy session.
+
+        :param db: active SQLAlchemy session (typically provided by get_db())
+        """
+        self._db = db
+
+    def _to_domain(self, orm_booking: db_models.BookingORM) -> domain_models.Booking:
+        """
+        Map a BookingORM row to a domain Booking dataclass.
+
+        :param orm_booking: ORM row fetched from the database
+        :return: domain Booking with the same field values
+        """
+        return domain_models.Booking(
+            id=orm_booking.id,
+            passenger_name=orm_booking.passenger_name,
+            flight_number=orm_booking.flight_number,
+            pickup_time=orm_booking.pickup_time,
+            pickup_location=orm_booking.pickup_location,
+            dropoff_location=orm_booking.dropoff_location,
+            status=orm_booking.status,
+            created_at=orm_booking.created_at,
+            updated_at=orm_booking.updated_at,
+        )
+
+    def create(self, booking_input: domain_models.BookingInput) -> domain_models.Booking:
+        """
+        Persist a new booking with PENDING status and return the domain entity.
+
+        :param booking_input: validated input data from the application layer
+        :return: persisted Booking domain entity with assigned id and timestamps
+        """
+        now = datetime.datetime.utcnow()
+        orm_booking = db_models.BookingORM(
+            passenger_name=booking_input.passenger_name,
+            flight_number=booking_input.flight_number,
+            pickup_time=booking_input.pickup_time,
+            pickup_location=booking_input.pickup_location,
+            dropoff_location=booking_input.dropoff_location,
+            status=enums.BookingStatus.PENDING,
+            created_at=now,
+            updated_at=now,
+        )
+        self._db.add(orm_booking)
+        self._db.commit()
+        self._db.refresh(orm_booking)
+        return self._to_domain(orm_booking)
+
+    def get_by_id(self, booking_id: int) -> domain_models.Booking | None:
+        """
+        Retrieve a booking by its primary key.
+
+        :param booking_id: numeric booking identifier
+        :return: Booking domain entity, or None if not found
+        """
+        orm_booking = self._db.get(db_models.BookingORM, booking_id)
+        if orm_booking is None:
+            return None
+        return self._to_domain(orm_booking)
+
+    def list_by_date(self, date: datetime.date) -> list[domain_models.Booking]:
+        """
+        Return all bookings whose pickup_time falls on the given calendar date.
+
+        Uses a half-open interval [start_of_day, start_of_next_day) to avoid
+        microsecond edge cases with datetime.time.max.
+
+        :param date: the calendar date to filter by
+        :return: list of matching Booking domain entities
+        """
+        start = datetime.datetime.combine(date, datetime.time.min)
+        end = datetime.datetime.combine(
+            date + datetime.timedelta(days=1), datetime.time.min
+        )
+        orm_bookings = (
+            self._db.query(db_models.BookingORM)
+            .filter(
+                db_models.BookingORM.pickup_time >= start,
+                db_models.BookingORM.pickup_time < end,
+            )
+            .all()
+        )
+        return [self._to_domain(b) for b in orm_bookings]
+
+    def update_status(
+        self,
+        booking_id: int,
+        new_status: enums.BookingStatus,
+        old_status: enums.BookingStatus,
+    ) -> domain_models.Booking:
+        """
+        Update a booking's status and atomically append a status history row.
+
+        Both the booking update and the history insert are committed in a single
+        transaction, ensuring the audit trail is always consistent.
+
+        :param booking_id: numeric booking identifier
+        :param new_status: the target status to transition to
+        :param old_status: the current status before transition (written to history)
+        :return: updated Booking domain entity
+        """
+        now = datetime.datetime.utcnow()
+        orm_booking = self._db.get(db_models.BookingORM, booking_id)
+        orm_booking.status = new_status
+        orm_booking.updated_at = now
+        history = db_models.BookingStatusHistoryORM(
+            booking_id=booking_id,
+            old_status=old_status,
+            new_status=new_status,
+            created_at=now,
+        )
+        self._db.add(history)
+        self._db.commit()
+        self._db.refresh(orm_booking)
+        return self._to_domain(orm_booking)
