@@ -57,6 +57,93 @@ class TestCreateBooking:
         mock_send_notification.assert_called_once_with(booking_id)
 
 
+class TestCreateBookingValidation:
+    """Input-validation tests for POST /bookings."""
+
+    def test_empty_passenger_name_returns_422(self, client):
+        """
+        An empty passenger_name string is rejected with HTTP 422.
+
+        :return: None
+        """
+        response = client.post("/bookings", json={**VALID_PAYLOAD, "passenger_name": ""})
+        assert response.status_code == 422
+
+    def test_passenger_name_exceeds_max_length_returns_422(self, client):
+        """
+        passenger_name longer than 255 characters is rejected with HTTP 422.
+
+        :return: None
+        """
+        response = client.post("/bookings", json={**VALID_PAYLOAD, "passenger_name": "A" * 256})
+        assert response.status_code == 422
+
+    def test_empty_flight_number_returns_422(self, client):
+        """
+        An empty flight_number string is rejected with HTTP 422.
+
+        :return: None
+        """
+        response = client.post("/bookings", json={**VALID_PAYLOAD, "flight_number": ""})
+        assert response.status_code == 422
+
+    def test_flight_number_exceeds_max_length_returns_422(self, client):
+        """
+        flight_number longer than 20 characters is rejected with HTTP 422.
+
+        :return: None
+        """
+        response = client.post("/bookings", json={**VALID_PAYLOAD, "flight_number": "A" * 21})
+        assert response.status_code == 422
+
+    def test_empty_pickup_location_returns_422(self, client):
+        """
+        An empty pickup_location string is rejected with HTTP 422.
+
+        :return: None
+        """
+        response = client.post("/bookings", json={**VALID_PAYLOAD, "pickup_location": ""})
+        assert response.status_code == 422
+
+    def test_pickup_location_exceeds_max_length_returns_422(self, client):
+        """
+        pickup_location longer than 500 characters is rejected with HTTP 422.
+
+        :return: None
+        """
+        response = client.post("/bookings", json={**VALID_PAYLOAD, "pickup_location": "A" * 501})
+        assert response.status_code == 422
+
+    def test_empty_dropoff_location_returns_422(self, client):
+        """
+        An empty dropoff_location string is rejected with HTTP 422.
+
+        :return: None
+        """
+        response = client.post("/bookings", json={**VALID_PAYLOAD, "dropoff_location": ""})
+        assert response.status_code == 422
+
+    def test_dropoff_location_exceeds_max_length_returns_422(self, client):
+        """
+        dropoff_location longer than 500 characters is rejected with HTTP 422.
+
+        :return: None
+        """
+        response = client.post("/bookings", json={**VALID_PAYLOAD, "dropoff_location": "A" * 501})
+        assert response.status_code == 422
+
+    def test_extra_field_returns_422(self, client):
+        """
+        Unexpected fields in the request body are rejected with HTTP 422.
+
+        Prevents callers from smuggling in forbidden fields like ``status``.
+
+        :return: None
+        """
+        response = client.post("/bookings", json={**VALID_PAYLOAD, "status": "confirmed"})
+        assert response.status_code == 422
+
+
 class TestGetBooking:
     """Tests for GET /bookings/{id}."""
 
