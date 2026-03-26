@@ -14,7 +14,8 @@ FROM python:3.12-slim
 WORKDIR /app
 
 RUN groupadd --gid 1000 appuser && \
-    useradd --uid 1000 --gid 1000 --no-create-home appuser
+    useradd --uid 1000 --gid 1000 --no-create-home appuser && \
+    chown appuser:appuser /app
 
 COPY --from=builder --chown=appuser:appuser /app /app
 COPY --chown=appuser:appuser entrypoint.sh /app/entrypoint.sh
