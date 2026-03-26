@@ -122,29 +122,54 @@ Or use `make up` which always rebuilds.
 
 ## Package Management with uv
 
-Dependencies inside the Docker image are installed with [uv](https://github.com/astral-sh/uv), a fast Python package manager written in Rust.
+Dependencies are declared in `pyproject.toml` and resolved to an exact, reproducible set in `uv.lock`. The Docker image installs exclusively from the lockfile using [uv](https://github.com/astral-sh/uv) 0.11.1 (pinned).
 
-### Why uv
+### Why uv + pyproject.toml + uv.lock
 
-- Significantly faster than `pip` for dependency resolution and installation — typical installs are 10–100× faster
-- Drop-in replacement for `pip install` — no new syntax to learn
-- Installed directly from the official image layer (`ghcr.io/astral-sh/uv`), no separate install step
+- `pyproject.toml` is the single source of truth for runtime and dev dependencies
+- `uv.lock` commits the exact resolved version of every package — builds are byte-for-byte reproducible across machines and over time
+- uv is 10–100× faster than pip for resolution and installation
+- The uv version is pinned in the Dockerfile (`ghcr.io/astral-sh/uv:0.11.1`) so the resolver itself cannot drift
 
-### How it is used
+### How it works in Docker
 
 ```dockerfile
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
-RUN uv pip install --system --no-cache -r requirements.txt
+COPY --from=ghcr.io/astral-sh/uv:0.11.1 /uv /usr/local/bin/uv
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-cache --no-install-project
+ENV PATH="/app/.venv/bin:$PATH"
 ```
 
-`--system` installs into the system Python (correct for Docker, avoids a virtual environment inside the container). `--no-cache` keeps the image layer small.
+`uv sync --frozen` installs exactly what is recorded in `uv.lock` into a `.venv` inside the container. `--frozen` prevents any re-resolution. `PATH` is updated so all venv binaries (`uvicorn`, `pytest`, `ruff`, `alembic`) are reachable directly.
 
 ### Adding a new dependency
 
-1. Add the package to `requirements.txt`
-2. Rebuild: `docker compose build --no-cache`
+```bash
+# 1. Add the package to pyproject.toml under [project] dependencies
+#    or [dependency-groups] dev for dev-only tools
 
-uv is only used inside Docker. There is no local virtual environment.
+# 2. Re-resolve and update the lockfile (runs inside Docker with uv available)
+docker run --rm \
+  -v $(pwd):/app -w /app \
+  --entrypoint="" python:3.12-slim \
+  sh -c "pip install uv==0.11.1 -q && uv lock"
+
+# 3. Rebuild the image
+docker compose build --no-cache
+```
+
+### Dependency groups
+
+| Group | Purpose | Installed in Docker |
+|-------|---------|-------------------|
+| `[project].dependencies` | Runtime — fastapi, sqlalchemy, alembic, … | Yes |
+| `[dependency-groups].dev` | Dev tools — pytest, httpx, ruff | Yes (same image used for tests) |
+
+### Exporting a plain requirements file (if needed)
+
+```bash
+docker compose run --rm app uv export --frozen --no-hashes -o /dev/stdout
+```
 
 ---
 
