@@ -10,10 +10,8 @@ class Settings(pydantic_settings.BaseSettings):
     :param database_url: SQLAlchemy connection URL for MySQL
     :param debug: enable debug mode
     """
-
     database_url: str = "mysql+pymysql://root:root@localhost:3306/transfer_bookings"
     debug: bool = False
-
     model_config = pydantic_settings.SettingsConfigDict(env_file=".env")
 
 

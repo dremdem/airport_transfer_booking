@@ -30,7 +30,6 @@ def run_migrations_online() -> None:
     Run migrations in online mode (connects to the database and applies changes).
     """
     connectable = sqlalchemy.create_engine(config.settings.database_url)
-
     with connectable.connect() as connection:
         alembic.context.configure(
             connection=connection,
