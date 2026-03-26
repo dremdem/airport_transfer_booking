@@ -2,6 +2,8 @@
 
 import sqlalchemy
 import sqlalchemy.orm
+import alembic.config
+import alembic.command
 import pytest
 
 import app.config as config
@@ -12,25 +14,29 @@ import app.database.repository as repository
 @pytest.fixture(scope="session")
 def db_engine():
     """
-    Create the database engine and schema once for the entire test session.
+    Apply all Alembic migrations to bring the test DB to ``head``, then yield
+    the engine.  Using Alembic (rather than ``Base.metadata.create_all``) means
+    the integration tests exercise the actual migration, catching any drift
+    between the ORM model and the revision before it reaches production.
 
-    Uses the DATABASE_URL from settings (points to the ``db`` Docker service).
-    All tables are created at session start and dropped at session end.
+    All tables are removed via ``downgrade base`` at session teardown.
 
     :return: SQLAlchemy Engine bound to the test database
     """
+    alembic_cfg = alembic.config.Config("alembic.ini")
+    alembic.command.upgrade(alembic_cfg, "head")
     engine = sqlalchemy.create_engine(config.settings.database_url)
-    db_models.Base.metadata.create_all(engine)
     yield engine
-    db_models.Base.metadata.drop_all(engine)
+    engine.dispose()
+    alembic.command.downgrade(alembic_cfg, "base")
 
 
 @pytest.fixture
 def db_session(db_engine):
     """
-    Yield a SQLAlchemy session and truncate all tables after each test.
+    Yield a SQLAlchemy session and delete all rows after each test.
 
-    Truncation (not DROP) keeps the schema intact for the next test while
+    Row deletion (not DROP) keeps the schema intact for the next test while
     ensuring full data isolation between tests.
 
     :param db_engine: session-scoped SQLAlchemy engine

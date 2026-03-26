@@ -27,7 +27,7 @@ def upgrade() -> None:
     sa.Column('pickup_time', sa.DateTime(), nullable=False),
     sa.Column('pickup_location', sa.String(length=255), nullable=False),
     sa.Column('dropoff_location', sa.String(length=255), nullable=False),
-    sa.Column('status', sa.Enum('PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED', name='bookingstatus'), nullable=False),
+    sa.Column('status', sa.String(length=20), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.PrimaryKeyConstraint('id')
@@ -36,8 +36,8 @@ def upgrade() -> None:
     op.create_table('booking_status_history',
     sa.Column('id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('booking_id', sa.BigInteger(), nullable=False),
-    sa.Column('old_status', sa.Enum('PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED', name='bookingstatus'), nullable=False),
-    sa.Column('new_status', sa.Enum('PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED', name='bookingstatus'), nullable=False),
+    sa.Column('old_status', sa.String(length=20), nullable=False),
+    sa.Column('new_status', sa.String(length=20), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.ForeignKeyConstraint(['booking_id'], ['booking.id'], ),
     sa.PrimaryKeyConstraint('id')

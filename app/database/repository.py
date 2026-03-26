@@ -39,7 +39,7 @@ class BookingRepository:
             pickup_time=orm_booking.pickup_time,
             pickup_location=orm_booking.pickup_location,
             dropoff_location=orm_booking.dropoff_location,
-            status=orm_booking.status,
+            status=enums.BookingStatus(orm_booking.status),
             created_at=orm_booking.created_at,
             updated_at=orm_booking.updated_at,
         )
@@ -58,7 +58,7 @@ class BookingRepository:
             pickup_time=booking_input.pickup_time,
             pickup_location=booking_input.pickup_location,
             dropoff_location=booking_input.dropoff_location,
-            status=enums.BookingStatus.PENDING,
+            status=enums.BookingStatus.PENDING.value,
             created_at=now,
             updated_at=now,
         )
@@ -122,12 +122,12 @@ class BookingRepository:
         """
         now = datetime.datetime.utcnow()
         orm_booking = self._db.get(db_models.BookingORM, booking_id)
-        orm_booking.status = new_status
+        orm_booking.status = new_status.value
         orm_booking.updated_at = now
         history = db_models.BookingStatusHistoryORM(
             booking_id=booking_id,
-            old_status=old_status,
-            new_status=new_status,
+            old_status=old_status.value,
+            new_status=new_status.value,
             created_at=now,
         )
         self._db.add(history)

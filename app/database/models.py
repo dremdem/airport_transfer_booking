@@ -9,8 +9,6 @@ import datetime
 import sqlalchemy
 import sqlalchemy.orm
 
-import app.domain.enums as enums
-
 
 Base = sqlalchemy.orm.declarative_base()
 
@@ -34,11 +32,7 @@ class BookingORM(Base):
     pickup_time = sqlalchemy.Column(sqlalchemy.DateTime, nullable=False)
     pickup_location = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
     dropoff_location = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
-    status = sqlalchemy.Column(
-        sqlalchemy.Enum(enums.BookingStatus),
-        nullable=False,
-        default=enums.BookingStatus.PENDING,
-    )
+    status = sqlalchemy.Column(sqlalchemy.String(20), nullable=False)
     created_at = sqlalchemy.Column(
         sqlalchemy.DateTime,
         nullable=False,
@@ -80,8 +74,8 @@ class BookingStatusHistoryORM(Base):
         sqlalchemy.ForeignKey("booking.id"),
         nullable=False,
     )
-    old_status = sqlalchemy.Column(sqlalchemy.Enum(enums.BookingStatus), nullable=False)
-    new_status = sqlalchemy.Column(sqlalchemy.Enum(enums.BookingStatus), nullable=False)
+    old_status = sqlalchemy.Column(sqlalchemy.String(20), nullable=False)
+    new_status = sqlalchemy.Column(sqlalchemy.String(20), nullable=False)
     created_at = sqlalchemy.Column(
         sqlalchemy.DateTime,
         nullable=False,
