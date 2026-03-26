@@ -32,7 +32,8 @@ This file provides guidance to Claude Code when working with this repository.
 - **Every module** must have a top-level docstring describing its purpose
 - **Blank line after module docstring** — separate the docstring from imports with one blank line
 - Format: reStructuredText style (`:param`, `:return`)
-- **No back lines in the code** to not waste the code space
+- **No blank lines inside function or class bodies** — blank lines between statements within a function or class are not allowed
+- **Two blank lines between top-level module definitions** (imports → first class/function/assignment) are standard PEP 8 and are fine
 
 Example:
 ```python
