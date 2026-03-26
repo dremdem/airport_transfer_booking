@@ -45,6 +45,7 @@ graph TD
 | Background tasks | **FastAPI BackgroundTasks** | No external broker needed for a single notification side-effect. Celery would add Redis/RabbitMQ infrastructure with no proportional benefit at this scale. |
 | Testing | **pytest + httpx** | `httpx` with `ASGITransport` tests the full ASGI stack without a running server. Enables clean unit/integration separation. |
 | Containerisation | **Docker Compose** | Reproducible local environment with zero manual setup. |
+| Package installer | **uv** | Replaces `pip` inside the Docker image. Significantly faster dependency resolution and installation. Installed via the official `ghcr.io/astral-sh/uv` image layer — no manual install step needed. |
 
 ---
 
@@ -488,6 +489,8 @@ services:
 **Migrations on startup:** `alembic upgrade head` runs before the application starts. The schema is always up-to-date — no manual migration step. Idempotent by design (Alembic tracks applied versions).
 
 **`--reload` flag:** Development only. A production image uses Gunicorn with Uvicorn workers and omits reload.
+
+**`uv` as the package installer:** The `Dockerfile` copies the `uv` binary from the official `ghcr.io/astral-sh/uv` image and uses `uv pip install --system --no-cache` to install dependencies. This replaces bare `pip` and is significantly faster, especially in CI and iterative builds.
 
 ---
 
