@@ -9,6 +9,7 @@ This file provides guidance to Claude Code when working with this repository.
 - Create PR for all changes
 - **One issue = one branch = one PR** — no exceptions
 - Workflow: `issue → branch (feature/*) → TDD (tests first) → implement → PR → CI green → merge`
+- **PR review responses**: always post an inline reply on the thread explaining what was done *before* resolving it — never resolve silently
 
 ### Development Environment
 - **All Python deps live inside Docker only** — no local venv required

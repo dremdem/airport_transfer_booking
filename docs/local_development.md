@@ -190,22 +190,30 @@ docker compose run --rm app pytest
 
 ```
 tests/
-├── unit/           # Pure domain logic — no DB, no HTTP, runs in milliseconds
-└── integration/    # Full HTTP → DB round-trip — requires the db container
+├── unit/                        # Pure domain logic — no DB, no HTTP, runs in milliseconds
+│   └── test_booking_service.py  # Status transitions, default status, BookingService rules
+└── integration/                 # Full HTTP → DB round-trip — requires the db container
 ```
 
-Integration tests require the `db` container to be running. `docker compose run --rm app pytest` starts the `db` service automatically (via `depends_on`).
+Unit tests have no external dependencies and run in under a second. Integration tests require the `db` container (started automatically via `depends_on`).
+
+### Running only unit tests
+
+```bash
+docker compose run --rm app pytest tests/unit/ -v
+```
 
 ### Running a specific test file
 
 ```bash
-docker compose run --rm app pytest tests/unit/test_booking_service.py
+docker compose run --rm app pytest tests/unit/test_booking_service.py -v
 ```
 
 ### Running with verbose output
 
 ```bash
-docker compose run --rm app pytest -v
+make test
+# expands to: docker compose run --rm app pytest || [ $? -eq 5 ]
 ```
 
 ---
