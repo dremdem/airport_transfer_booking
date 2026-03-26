@@ -26,6 +26,24 @@ class BookingInput:
 
 
 @dataclasses.dataclass
+class BookingCreate:
+    """
+    Internal command object constructed by the service layer before persisting.
+
+    Carries all ``BookingInput`` fields plus the ``status`` decided by the
+    service. The repository accepts this type and persists exactly what it
+    receives — no business rules hidden in the data layer.
+    """
+
+    passenger_name: str
+    flight_number: str
+    pickup_time: datetime.datetime
+    pickup_location: str
+    dropoff_location: str
+    status: enums.BookingStatus
+
+
+@dataclasses.dataclass
 class Booking:
     """Full booking domain entity including identity and current state."""
     id: int

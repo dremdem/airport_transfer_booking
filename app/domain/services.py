@@ -32,23 +32,24 @@ class BookingService:
 
     def create(self, booking_input: models.BookingInput) -> models.Booking:
         """
-        Create a new booking and enforce that it starts with PENDING status.
+        Create a new booking, actively setting PENDING as the initial status.
 
-        The PENDING-on-creation rule is a domain invariant. The service verifies
-        it after the repository call so the rule is owned by the domain layer,
-        not delegated silently to persistence.
+        The service constructs a ``BookingCreate`` command with ``status=PENDING``
+        before calling the repository.  This keeps the invariant in the domain
+        layer where it belongs; the repository is a passive persister.
 
         :param booking_input: validated input data from the application layer
         :return: persisted Booking domain entity
-        :raises InvalidStatusTransitionError: if the repository violates the PENDING invariant
         """
-        booking = self._repo.create(booking_input)
-        if booking.status != enums.BookingStatus.PENDING:
-            raise exceptions.InvalidStatusTransitionError(
-                from_status="(none)",
-                to_status=booking.status.value,
-            )
-        return booking
+        booking_create = models.BookingCreate(
+            passenger_name=booking_input.passenger_name,
+            flight_number=booking_input.flight_number,
+            pickup_time=booking_input.pickup_time,
+            pickup_location=booking_input.pickup_location,
+            dropoff_location=booking_input.dropoff_location,
+            status=enums.BookingStatus.PENDING,
+        )
+        return self._repo.create(booking_create)
 
     def get_by_id(self, booking_id: int) -> models.Booking:
         """
