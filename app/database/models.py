@@ -6,5 +6,4 @@ alembic/env.py can import target_metadata from the start.
 
 import sqlalchemy.orm
 
-
 Base = sqlalchemy.orm.declarative_base()
