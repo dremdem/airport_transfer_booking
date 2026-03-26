@@ -119,7 +119,7 @@ This enables hot-reload during development: file changes on the host are reflect
 
 ### Rebuilding after dependency changes
 
-If `requirements.txt` changes, rebuild the image:
+If `pyproject.toml` or `uv.lock` changes, rebuild the image:
 ```bash
 docker compose build --no-cache
 ```
@@ -272,5 +272,6 @@ airport_transfer_booking/
 ├── Dockerfile          # Application image (uv + Python 3.12)
 ├── Makefile            # Developer shortcuts
 ├── pytest.ini          # Test configuration
-└── requirements.txt    # Python dependencies
+├── pyproject.toml      # Project metadata and dependencies
+└── uv.lock             # Pinned dependency lockfile
 ```
