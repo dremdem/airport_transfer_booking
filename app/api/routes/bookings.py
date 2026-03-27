@@ -38,6 +38,11 @@ def create_booking(
         pickup_location=body.pickup_location,
         dropoff_location=body.dropoff_location,
     ))
+    # Enqueue notification after the booking is committed so the HTTP response
+    # is returned immediately. The task must open its own DB session — reusing
+    # the request-scoped `db` session causes transaction-boundary problems
+    # because that session is closed once this handler returns.
+    # See docs/architecture.md — §7 Background Notification Flow.
     background_tasks.add_task(notifications.send_notification, booking.id)
     return schemas.BookingResponse.model_validate(booking)
 
