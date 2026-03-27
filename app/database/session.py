@@ -8,7 +8,10 @@ import sqlalchemy.orm
 import app.config as config
 
 
-engine = sqlalchemy.create_engine(config.settings.database_url)
+engine = sqlalchemy.create_engine(
+    config.settings.database_url,
+    isolation_level="READ COMMITTED",
+)
 
 SessionLocal = sqlalchemy.orm.sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

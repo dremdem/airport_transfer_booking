@@ -583,6 +583,7 @@ Type-safe, validated at startup. A missing or malformed `DATABASE_URL` causes an
 | Domain vs ORM models | Separate | Prevents ORM session state from leaking into business logic |
 | API schemas → domain inputs | Mapped at application boundary | Keeps domain layer free of FastAPI/Pydantic transport concerns |
 | Background task session | Own `SessionLocal` | Separate unit of work from the request transaction |
+| Session isolation level | `READ COMMITTED` | Each query sees the latest committed data; cross-session writes (e.g. background task) are immediately visible to open test sessions, removing the need for fresh-session workarounds in tests |
 | DB for tests | Real MySQL + transaction rollback | Integration tests verify real SQL behaviour, fast cleanup |
 | Error handling | Domain exceptions → HTTP codes | Keeps domain framework-agnostic |
 | Deployment | Monolithic Docker Compose | Single codebase, two containers, zero external dependencies |

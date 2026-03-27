@@ -39,40 +39,24 @@ BOOKING_CREATE = domain_models.BookingCreate(
 )
 
 
-def _query_notification(db_engine, booking_id):
-    """
-    Open a fresh session to read notification rows committed by send_notification.
-
-    send_notification commits via its own session.  The test's db_session runs
-    under REPEATABLE READ and cannot see those rows — a new session is required.
-
-    :param db_engine: SQLAlchemy engine for the test database
-    :param booking_id: booking id to filter on
-    :return: list of NotificationLogORM rows
-    """
-    Session = sqlalchemy.orm.sessionmaker(bind=db_engine)
-    with Session() as fresh:
-        return (
-            fresh.query(db_models.NotificationLogORM)
-            .filter_by(booking_id=booking_id)
-            .all()
-        )
-
-
 class TestSendNotification:
     """Tests for notifications.send_notification."""
 
-    def test_inserts_notification_log_row(self, db_session, db_engine):
+    def test_inserts_notification_log_row(self, db_session):
         """
         send_notification writes a notification_log row for the given booking id.
+
+        Under READ COMMITTED the open test session sees rows committed by
+        send_notification's separate session without needing a new connection.
 
         :return: None
         """
         booking = repository.BookingRepository(db_session).create(BOOKING_CREATE)
         notifications.send_notification(booking.id)
-        assert len(_query_notification(db_engine, booking.id)) == 1
+        rows = db_session.query(db_models.NotificationLogORM).filter_by(booking_id=booking.id).all()
+        assert len(rows) == 1
 
-    def test_sets_event_type_booking_created(self, db_session, db_engine):
+    def test_sets_event_type_booking_created(self, db_session):
         """
         The notification row carries event_type='booking_created'.
 
@@ -80,10 +64,10 @@ class TestSendNotification:
         """
         booking = repository.BookingRepository(db_session).create(BOOKING_CREATE)
         notifications.send_notification(booking.id)
-        row = _query_notification(db_engine, booking.id)[0]
+        row = db_session.query(db_models.NotificationLogORM).filter_by(booking_id=booking.id).one()
         assert row.event_type == "booking_created"
 
-    def test_message_references_booking_id(self, db_session, db_engine):
+    def test_message_references_booking_id(self, db_session):
         """
         The notification message contains the booking id.
 
@@ -91,7 +75,7 @@ class TestSendNotification:
         """
         booking = repository.BookingRepository(db_session).create(BOOKING_CREATE)
         notifications.send_notification(booking.id)
-        row = _query_notification(db_engine, booking.id)[0]
+        row = db_session.query(db_models.NotificationLogORM).filter_by(booking_id=booking.id).one()
         assert str(booking.id) in row.message
 
     def test_uses_own_session(self, db_session):
