@@ -30,17 +30,17 @@ Interactive docs (Swagger UI): <http://localhost:8000/docs>
 
 ### Environment variables
 
-Copy `.env.example` to `.env` — the defaults work out of the box with Docker Compose:
+`docker-compose.yml` already sets the required environment variables directly, so no `.env` file is needed to run the stack with Docker Compose.
 
-```bash
-cp .env.example .env
-```
+`.env.example` documents the available settings for reference or local overrides:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DATABASE_URL` | `mysql+pymysql://root:root@db:3306/transfer_bookings` | Live database connection |
+| `DATABASE_URL` | `mysql+pymysql://root:root@db:3306/transfer_bookings` | Live database connection (`db` resolves inside the Compose network) |
 | `TEST_DATABASE_URL` | `mysql+pymysql://root:root@db:3306/transfer_bookings_test` | Isolated test database |
 | `DEBUG` | `false` | Enable debug mode |
+
+> **Note:** The hostname `db` only resolves from inside the Docker Compose network. If you run the app outside Docker (e.g. a local virtual environment), replace `db` with `localhost`.
 
 ---
 
@@ -86,6 +86,7 @@ make db-reset
 | `make test` | Run the full test suite |
 | `make lint` | Run the ruff linter |
 | `make format` | Run the ruff formatter |
+| `make check` | Alias for `make lint` — run all code quality checks |
 | `make db-revision MSG="..."` | Generate a new migration |
 | `make db-reset` | Downgrade all migrations |
 | `make db-connect` | Open an interactive MySQL shell |
