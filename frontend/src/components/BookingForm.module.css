@@ -1,0 +1,123 @@
+.form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2.5rem;
+  box-shadow: var(--shadow), var(--glow);
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.heading h2 {
+  font-size: 1.9rem;
+  color: var(--gold-light);
+}
+
+.ornament {
+  color: var(--gold);
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+.field label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.field input {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 0.7rem 1rem;
+  font-size: 0.875rem;
+  transition: border-color var(--ease), box-shadow var(--ease);
+}
+
+.field input:focus {
+  border-color: var(--border-hi);
+  box-shadow: 0 0 0 3px var(--gold-dim);
+}
+
+.field input::placeholder {
+  color: var(--text-faint);
+}
+
+.field input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.5) sepia(1) saturate(2) hue-rotate(10deg);
+  cursor: pointer;
+}
+
+.error {
+  font-size: 0.8rem;
+  color: var(--status-cancelled);
+  text-align: center;
+  padding: 0.5rem 1rem;
+  background: rgba(232,128,109,0.08);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(232,128,109,0.2);
+}
+
+.submit {
+  align-self: center;
+  background: transparent;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  padding: 0.75rem 3rem;
+  border-radius: 100px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  position: relative;
+  overflow: hidden;
+}
+
+.submit::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--gold);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--ease);
+  z-index: 0;
+}
+
+.submit:hover::before { transform: scaleX(1); }
+
+.submit:hover { color: var(--bg); }
+
+.submit span, .submit { position: relative; z-index: 1; }
+
+.submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

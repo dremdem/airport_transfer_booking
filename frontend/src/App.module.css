@@ -1,0 +1,126 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(8, 12, 24, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.headerInner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.25rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.logoMark {
+  font-size: 1.6rem;
+  color: var(--gold);
+  filter: drop-shadow(0 0 8px rgba(201,168,76,0.5));
+}
+
+.brand {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: var(--gold-light);
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.tagline {
+  font-size: 0.65rem;
+  font-weight: 300;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-top: 0.2rem;
+}
+
+.nav {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.navBtn {
+  background: none;
+  color: var(--text-dim);
+  padding: 0.5rem 1.1rem;
+  border-radius: 100px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.navBtn:hover {
+  color: var(--gold);
+  border-color: var(--border);
+}
+
+.navActive {
+  color: var(--gold) !important;
+  border-color: var(--border-hi) !important;
+  background: var(--gold-dim);
+}
+
+.headerRule {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border), transparent);
+}
+
+/* ── Main ── */
+.main {
+  flex: 1;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 3rem 2rem;
+}
+
+.homeGrid {
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+.detailsWrap {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+/* ── Footer ── */
+.footer {
+  text-align: center;
+  padding: 0 0 2rem;
+}
+
+.footerRule {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border), transparent);
+  margin-bottom: 1.5rem;
+}
+
+.footer p {
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  color: var(--text-faint);
+  text-transform: uppercase;
+}
