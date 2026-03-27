@@ -67,6 +67,14 @@ class BookingRepository:
             updated_at=now,
         )
         self._db.add(orm_booking)
+        self._db.flush()
+        history = db_models.BookingStatusHistoryORM(
+            booking_id=orm_booking.id,
+            old_status=None,
+            new_status=booking_create.status.value,
+            created_at=now,
+        )
+        self._db.add(history)
         self._db.commit()
         self._db.refresh(orm_booking)
         return self._to_domain(orm_booking)
@@ -138,7 +146,7 @@ class BookingRepository:
                 pickup_location=row.pickup_location,
                 dropoff_location=row.dropoff_location,
                 current_status=enums.BookingStatus(row.current_status),
-                old_status=enums.BookingStatus(row.old_status),
+                old_status=enums.BookingStatus(row.old_status) if row.old_status is not None else None,
                 new_status=enums.BookingStatus(row.new_status),
                 transitioned_at=row.transitioned_at,
             )

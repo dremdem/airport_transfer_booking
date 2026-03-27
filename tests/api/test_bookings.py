@@ -277,9 +277,9 @@ class TestGetBookingTimeline:
         response = client.get(f"/bookings/{booking_id}/timeline")
         assert response.status_code == 200
         entries = response.json()
-        assert len(entries) == 1
-        assert entries[0]["old_status"] == "pending"
-        assert entries[0]["new_status"] == "confirmed"
+        assert len(entries) == 2  # creation entry + this transition
+        assert entries[1]["old_status"] == "pending"
+        assert entries[1]["new_status"] == "confirmed"
 
     def test_entry_contains_booking_fields(self, client):
         """
@@ -312,9 +312,9 @@ class TestGetBookingTimeline:
         response = client.get(f"/bookings/{booking_id}/timeline")
         assert response.status_code == 200
         entries = response.json()
-        assert len(entries) == 2
-        assert entries[0]["new_status"] == "confirmed"
-        assert entries[1]["new_status"] == "completed"
+        assert len(entries) == 3  # creation + confirmed + completed
+        assert entries[1]["new_status"] == "confirmed"
+        assert entries[2]["new_status"] == "completed"
 
     def test_missing_booking_returns_404(self, client):
         """

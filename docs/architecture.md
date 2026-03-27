@@ -338,24 +338,15 @@ GET    /bookings?date=YYYY-MM-DD   → 200 OK     + list[BookingResponse]
 
 #### Timeline endpoint — initial-state guarantee
 
-`GET /bookings/{id}/timeline` always returns at least one entry. For a booking
-that has never had its status changed, the service synthesises a creation entry:
+`GET /bookings/{id}/timeline` always returns at least one entry. `BookingRepository.create()` writes a creation row to `booking_status_history` in the same transaction as the booking itself:
 
 | Field | Value |
 |-------|-------|
 | `old_status` | `null` — no prior state exists |
-| `new_status` | booking's current status (`pending`) |
+| `new_status` | `pending` |
 | `transitioned_at` | booking's `created_at` timestamp |
 
-**Why in the service layer, not the VIEW?**
-An alternative would be to change `booking_timeline_view` from `INNER JOIN` to
-`LEFT JOIN` and add `COALESCE` expressions for the nullable columns. That would
-work, but it has two drawbacks: it would require a new Alembic migration for a
-pure behaviour change (no schema change), and it would hide a product rule
-("always show the initial state") inside a SQL VIEW where it is harder to
-discover, test, and reason about. Keeping the fallback in `BookingService`
-makes it unit-testable without a database and explicit to anyone reading the
-business logic.
+This keeps the history table as the single source of truth for all state changes, including the initial one, and avoids any special-casing in the service layer.
 
 ### Request/Response schemas
 
@@ -584,7 +575,7 @@ Type-safe, validated at startup. A missing or malformed `DATABASE_URL` causes an
 | Table naming | Singular (`booking`, `notification_log`, …) | Consistency across DB and Python domain objects |
 | Status storage | VARCHAR, not ENUM | No DDL changes when adding statuses |
 | Status validation | Domain layer (Python enum + transition map) | Testable, readable, not hidden in DB or triggers |
-| Status history | Separate `booking_status_history` table | Auditability and lifecycle analysis without bloating `booking` |
+| Status history | Separate `booking_status_history` table | Auditability and lifecycle analysis without bloating `booking`; creation event always recorded (old_status NULL) |
 | Timeline view | MySQL VIEW (`booking_timeline_view`) | Denormalised read model for the audit endpoint; avoids a join in application code; managed by a manual Alembic migration |
 | Timeline query | Raw SQL via `sqlalchemy.text()` | VIEW has no ORM model; using raw SQL keeps the ORM metadata clean and prevents autogenerate drift |
 | Index | Composite `(pickup_time, status)` | Covers date-only and date+status query patterns with one B-tree |

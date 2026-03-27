@@ -64,6 +64,24 @@ class TestCreate:
         assert orm_row is not None
         assert orm_row.passenger_name == "Alice Smith"
 
+    def test_create_writes_creation_history_entry(self, repo, db_session):
+        """
+        create() atomically inserts a creation history row with old_status=None
+        so the timeline always has at least one entry from the moment of creation.
+
+        :return: None
+        """
+        result = repo.create(BOOKING_CREATE)
+        db_session.expire_all()
+        history = (
+            db_session.query(db_models.BookingStatusHistoryORM)
+            .filter_by(booking_id=result.id)
+            .all()
+        )
+        assert len(history) == 1
+        assert history[0].old_status is None
+        assert history[0].new_status == enums.BookingStatus.PENDING
+
 
 class TestGetById:
     """Tests for BookingRepository.get_by_id."""
@@ -167,11 +185,13 @@ class TestUpdateStatus:
         history = (
             db_session.query(db_models.BookingStatusHistoryORM)
             .filter_by(booking_id=created.id)
+            .order_by(db_models.BookingStatusHistoryORM.id)
             .all()
         )
-        assert len(history) == 1
-        assert history[0].old_status == enums.BookingStatus.PENDING
-        assert history[0].new_status == enums.BookingStatus.CONFIRMED
+        assert len(history) == 2  # creation entry + this transition
+        transition = history[1]
+        assert transition.old_status == enums.BookingStatus.PENDING
+        assert transition.new_status == enums.BookingStatus.CONFIRMED
 
     def test_update_status_updates_updated_at(self, repo):
         """
@@ -203,41 +223,47 @@ class TestUpdateStatus:
             .order_by(db_models.BookingStatusHistoryORM.id)
             .all()
         )
-        assert len(history) == 2
-        assert history[0].new_status == enums.BookingStatus.CONFIRMED
-        assert history[1].new_status == enums.BookingStatus.COMPLETED
+        assert len(history) == 3  # creation entry + two transitions
+        assert history[1].new_status == enums.BookingStatus.CONFIRMED
+        assert history[2].new_status == enums.BookingStatus.COMPLETED
 
 
 class TestGetTimeline:
     """Tests for BookingRepository.get_timeline."""
 
-    def test_returns_empty_list_for_booking_with_no_transitions(self, repo):
+    def test_returns_creation_entry_for_new_booking(self, repo):
         """
-        A booking that has never been transitioned returns an empty timeline.
+        A freshly created booking has one timeline entry: the creation row
+        written by create() with old_status=None and new_status=pending.
 
         :return: None
         """
         created = repo.create(BOOKING_CREATE)
         result = repo.get_timeline(created.id)
-        assert result == []
+        assert len(result) == 1
+        assert result[0].old_status is None
+        assert result[0].new_status == enums.BookingStatus.PENDING
+        assert result[0].booking_id == created.id
 
-    def test_returns_one_entry_after_one_transition(self, repo):
+    def test_returns_two_entries_after_one_transition(self, repo):
         """
-        A single status transition produces one timeline entry.
+        After one status transition the timeline has the creation entry plus
+        the transition entry, ordered chronologically.
 
         :return: None
         """
         created = repo.create(BOOKING_CREATE)
         repo.update_status(created.id, enums.BookingStatus.CONFIRMED, enums.BookingStatus.PENDING)
         result = repo.get_timeline(created.id)
-        assert len(result) == 1
-        assert result[0].old_status == enums.BookingStatus.PENDING
-        assert result[0].new_status == enums.BookingStatus.CONFIRMED
-        assert result[0].booking_id == created.id
+        assert len(result) == 2
+        assert result[0].old_status is None
+        assert result[0].new_status == enums.BookingStatus.PENDING
+        assert result[1].old_status == enums.BookingStatus.PENDING
+        assert result[1].new_status == enums.BookingStatus.CONFIRMED
 
     def test_entries_ordered_chronologically(self, repo):
         """
-        Multiple transitions are returned earliest-first.
+        All entries (creation + transitions) are returned earliest-first.
 
         :return: None
         """
@@ -245,9 +271,10 @@ class TestGetTimeline:
         repo.update_status(created.id, enums.BookingStatus.CONFIRMED, enums.BookingStatus.PENDING)
         repo.update_status(created.id, enums.BookingStatus.COMPLETED, enums.BookingStatus.CONFIRMED)
         result = repo.get_timeline(created.id)
-        assert len(result) == 2
-        assert result[0].new_status == enums.BookingStatus.CONFIRMED
-        assert result[1].new_status == enums.BookingStatus.COMPLETED
+        assert len(result) == 3  # creation + confirmed + completed
+        assert result[0].new_status == enums.BookingStatus.PENDING
+        assert result[1].new_status == enums.BookingStatus.CONFIRMED
+        assert result[2].new_status == enums.BookingStatus.COMPLETED
 
     def test_entry_contains_booking_fields(self, repo):
         """
@@ -256,7 +283,6 @@ class TestGetTimeline:
         :return: None
         """
         created = repo.create(BOOKING_CREATE)
-        repo.update_status(created.id, enums.BookingStatus.CONFIRMED, enums.BookingStatus.PENDING)
         entry = repo.get_timeline(created.id)[0]
         assert entry.passenger_name == "Alice Smith"
         assert entry.flight_number == "BA123"

@@ -84,39 +84,19 @@ class BookingService:
         Return the full status-transition history for a booking, ordered chronologically.
 
         Existence is verified first so that an unknown ``booking_id`` raises
-        ``BookingNotFoundError`` (→ 404) rather than silently returning an
-        empty list.
+        ``BookingNotFoundError`` (→ 404) rather than returning an empty list.
 
-        When no transitions have been recorded yet, a single synthetic entry is
-        returned representing the booking's initial creation state.  Its
-        ``old_status`` is ``None`` (no prior state exists) and ``transitioned_at``
-        is the booking's ``created_at`` timestamp.
+        The creation event is always present because ``BookingRepository.create``
+        writes an initial history row (``old_status=None``) in the same
+        transaction as the booking itself, so this method always returns at
+        least one entry for any existing booking.
 
         :param booking_id: numeric booking identifier
-        :return: list of BookingTimelineEntry from earliest to latest transition;
-                 always contains at least one entry for existing bookings
+        :return: list of BookingTimelineEntry from earliest to latest; always ≥1
         :raises BookingNotFoundError: if no booking with that ID exists
         """
-        booking = self.get_by_id(booking_id)
-        entries = self._repo.get_timeline(booking_id)
-        if not entries:
-            # Synthesise a creation entry rather than pushing this fallback into
-            # the VIEW (LEFT JOIN + COALESCE). "Always show the initial state" is
-            # a product rule — it belongs here where it is unit-testable and
-            # visible, not hidden in SQL. See docs/architecture.md §5 for details.
-            return [models.BookingTimelineEntry(
-                booking_id=booking.id,
-                passenger_name=booking.passenger_name,
-                flight_number=booking.flight_number,
-                pickup_time=booking.pickup_time,
-                pickup_location=booking.pickup_location,
-                dropoff_location=booking.dropoff_location,
-                current_status=booking.status,
-                old_status=None,
-                new_status=booking.status,
-                transitioned_at=booking.created_at,
-            )]
-        return entries
+        self.get_by_id(booking_id)
+        return self._repo.get_timeline(booking_id)
 
     def list_by_date(self, date: datetime.date) -> list[models.Booking]:
         """

@@ -74,7 +74,7 @@ class BookingStatusHistoryORM(Base):
         sqlalchemy.ForeignKey("booking.id"),
         nullable=False,
     )
-    old_status = sqlalchemy.Column(sqlalchemy.String(20), nullable=False)
+    old_status = sqlalchemy.Column(sqlalchemy.String(20), nullable=True)
     new_status = sqlalchemy.Column(sqlalchemy.String(20), nullable=False)
     created_at = sqlalchemy.Column(
         sqlalchemy.DateTime,
