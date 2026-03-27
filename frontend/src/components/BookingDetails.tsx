@@ -14,15 +14,19 @@ export default function BookingDetails({ bookingId, onBack, onUpdated }: Props) 
   const [booking, setBooking] = useState<Booking | null>(null)
   const [timeline, setTimeline] = useState<TimelineEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [transitioning, setTransitioning] = useState<BookingStatus | null>(null)
 
   const load = async () => {
     setLoading(true)
+    setLoadError(null)
     try {
       const [b, t] = await Promise.all([api.getBooking(bookingId), api.getTimeline(bookingId)])
       setBooking(b)
       setTimeline(t)
+    } catch (err) {
+      setLoadError(err instanceof ApiError ? err.message : 'Failed to load booking')
     } finally {
       setLoading(false)
     }
@@ -47,6 +51,17 @@ export default function BookingDetails({ bookingId, onBack, onUpdated }: Props) 
   }
 
   if (loading) return <div className={styles.loading}><div className={styles.spinner} /></div>
+
+  if (loadError) return (
+    <div className={styles.container}>
+      <button className={styles.back} onClick={onBack}>← Back</button>
+      <div className={styles.loadError}>
+        <p>{loadError}</p>
+        <button className={styles.retryBtn} onClick={load}>Retry</button>
+      </div>
+    </div>
+  )
+
   if (!booking) return null
 
   const nextStatuses = VALID_TRANSITIONS[booking.status]

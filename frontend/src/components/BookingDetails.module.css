@@ -150,6 +150,31 @@
   font-style: normal;
 }
 
+.loadError {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--status-cancelled);
+  font-size: 0.875rem;
+}
+
+.retryBtn {
+  background: transparent;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  padding: 0.5rem 1.5rem;
+  border-radius: 100px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.retryBtn:hover { background: var(--gold-dim); }
+
 .loading {
   display: flex;
   align-items: center;

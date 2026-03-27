@@ -27,10 +27,12 @@ export default function BookingForm({ onCreated }: Props) {
     setLoading(true)
     setError(null)
     try {
-      const booking = await api.createBooking({
-        ...form,
-        pickup_time: new Date(form.pickup_time).toISOString().slice(0, 19),
-      })
+      // datetime-local gives "YYYY-MM-DDTHH:mm" — send as wall-clock time.
+      // Avoid toISOString() which converts to UTC and shifts non-UTC locales.
+      const pickup_time = form.pickup_time.length === 16
+        ? form.pickup_time + ':00'
+        : form.pickup_time
+      const booking = await api.createBooking({ ...form, pickup_time })
       onCreated(booking)
       setForm(EMPTY)
     } catch (err) {
