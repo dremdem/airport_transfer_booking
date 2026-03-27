@@ -1,10 +1,13 @@
-.PHONY: help up down lint format check test migrate db-revision db-reset db-connect
+.PHONY: help build up down lint format check test migrate db-revision db-reset db-connect
 
 help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-up: ## Build and start all services in background
-	docker compose up --build -d
+build: ## Rebuild the Docker image (run after pyproject.toml / Dockerfile changes)
+	docker compose build
+
+up: ## Start all services in background (without rebuilding)
+	docker compose up -d
 
 down: ## Stop and remove containers
 	docker compose down

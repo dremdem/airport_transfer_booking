@@ -32,6 +32,7 @@ No local Python installation is required. All Python tooling runs inside Docker.
 git clone git@github.com:dremdem/airport_transfer_booking.git
 cd airport_transfer_booking
 cp .env.example .env
+make build
 make up
 ```
 
@@ -70,7 +71,8 @@ All commands run inside the Docker container — no local Python or pip needed.
 | Target | Description |
 |--------|-------------|
 | `make help` | Show all available targets with descriptions |
-| `make up` | Build and start all services in background (`-d`) |
+| `make build` | Rebuild the Docker image (needed after `pyproject.toml` / `Dockerfile` changes) |
+| `make up` | Start all services in background without rebuilding |
 | `make down` | Stop and remove containers |
 | `make lint` | Run ruff linter (`--no-deps` — no db needed) |
 | `make format` | Run ruff formatter (`--no-deps` — no db needed) |
@@ -120,12 +122,14 @@ This enables hot-reload during development: file changes on the host are reflect
 
 ### Rebuilding after dependency changes
 
-If `pyproject.toml` or `uv.lock` changes, rebuild the image:
+If `pyproject.toml`, `uv.lock`, or `Dockerfile` changes, rebuild the image:
 ```bash
+make build
+# or for a completely clean rebuild:
 docker compose build --no-cache
 ```
 
-Or use `make up` which always rebuilds.
+Regular `make up` does **not** rebuild — use `make build` first when image changes are needed.
 
 ---
 
