@@ -271,6 +271,21 @@ Implementation direction:
 - the background task should open and manage its own database session
 - treat notification logging as a separate unit of work from the synchronous booking creation flow
 
+## Session Isolation Level
+
+We configure all SQLAlchemy engines (application and test) to use `READ COMMITTED`.
+
+MySQL's default is `REPEATABLE READ`, which takes a transaction-wide snapshot on the first read. For short-lived CRUD transactions this makes no practical difference to correctness, but it creates a surprising testing inconvenience: a test session that is already open cannot see rows committed by `send_notification`'s separate session, requiring a new connection purely for assertion purposes.
+
+`READ COMMITTED` removes that friction: each SQL statement sees the latest committed data, so an open test session can query rows committed by the background task's session without any extra connection ceremony. It also matches the isolation behaviour that most developers expect by default.
+
+No correctness regression is introduced. The booking service does not rely on repeatable-read snapshot consistency — its transactions are short and do not re-read the same rows mid-transaction.
+
+Applied in:
+
+- `app/database/session.py` — `create_engine(..., isolation_level="READ COMMITTED")`
+- `tests/conftest.py` — same flag on the test engine
+
 ## Current Scope Principle
 
 When choosing between a simpler field and a normalized entity, we prefer the simpler field unless there is a clear business reason to model a standalone object.

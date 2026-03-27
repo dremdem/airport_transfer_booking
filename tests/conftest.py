@@ -34,7 +34,10 @@ def db_engine():
     alembic_cfg = alembic.config.Config("alembic.ini")
     alembic_cfg.set_main_option("sqlalchemy.url", config.settings.test_database_url)
     alembic.command.upgrade(alembic_cfg, "head")
-    engine = sqlalchemy.create_engine(config.settings.test_database_url)
+    engine = sqlalchemy.create_engine(
+        config.settings.test_database_url,
+        isolation_level="READ COMMITTED",
+    )
     yield engine
     engine.dispose()
     alembic.command.downgrade(alembic_cfg, "base")

@@ -23,26 +23,6 @@ VALID_PAYLOAD = {
 }
 
 
-def _query_notification(db_engine, booking_id):
-    """
-    Open a fresh session to read notification rows committed by send_notification.
-
-    send_notification commits via its own session so a new session is required
-    to see the rows outside its transaction boundary.
-
-    :param db_engine: SQLAlchemy engine for the test database
-    :param booking_id: booking id to filter on
-    :return: list of NotificationLogORM rows
-    """
-    Session = sqlalchemy.orm.sessionmaker(bind=db_engine)
-    with Session() as fresh:
-        return (
-            fresh.query(db_models.NotificationLogORM)
-            .filter_by(booking_id=booking_id)
-            .all()
-        )
-
-
 class TestCreateBookingNotificationE2E:
     """End-to-end test for the POST /bookings → send_notification pipeline."""
 
@@ -51,6 +31,9 @@ class TestCreateBookingNotificationE2E:
         POST /bookings enqueues send_notification as a BackgroundTask; FastAPI's
         TestClient runs background tasks synchronously, so the notification_log
         row is committed before the response is received.
+
+        Under READ COMMITTED the open db_session sees the row committed by
+        send_notification's separate session without opening a new connection.
 
         This test does not mock send_notification — it exercises the full wiring
         from route → BackgroundTasks → send_notification → DB.
@@ -78,6 +61,6 @@ class TestCreateBookingNotificationE2E:
 
         assert response.status_code == 201
         booking_id = response.json()["id"]
-        rows = _query_notification(db_engine, booking_id)
+        rows = db_session.query(db_models.NotificationLogORM).filter_by(booking_id=booking_id).all()
         assert len(rows) == 1
         assert rows[0].event_type == "booking_created"
