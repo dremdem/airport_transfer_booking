@@ -44,6 +44,28 @@ class BookingCreate:
 
 
 @dataclasses.dataclass
+class BookingTimelineEntry:
+    """
+    A single row from the booking_timeline_view read model.
+
+    Represents one status-history event for a booking, combining the
+    booking's current details with the recorded transition.  The view
+    (not this dataclass) is the source of ordering and join logic.
+    """
+
+    booking_id: int
+    passenger_name: str
+    flight_number: str
+    pickup_time: datetime.datetime
+    pickup_location: str
+    dropoff_location: str
+    current_status: enums.BookingStatus
+    old_status: enums.BookingStatus
+    new_status: enums.BookingStatus
+    transitioned_at: datetime.datetime
+
+
+@dataclasses.dataclass
 class Booking:
     """Full booking domain entity including identity and current state."""
     id: int

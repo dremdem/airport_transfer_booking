@@ -79,6 +79,22 @@ class BookingService:
             raise exceptions.InvalidStatusTransitionError(booking.status, new_status)
         return self._repo.update_status(booking_id, new_status, booking.status)
 
+    def get_timeline(self, booking_id: int) -> list[models.BookingTimelineEntry]:
+        """
+        Return the full status-transition history for a booking, ordered chronologically.
+
+        Existence is verified first so that an unknown ``booking_id`` raises
+        ``BookingNotFoundError`` (→ 404) rather than silently returning an
+        empty list that the caller cannot distinguish from a booking with no
+        transitions yet.
+
+        :param booking_id: numeric booking identifier
+        :return: list of BookingTimelineEntry from earliest to latest transition
+        :raises BookingNotFoundError: if no booking with that ID exists
+        """
+        self.get_by_id(booking_id)
+        return self._repo.get_timeline(booking_id)
+
     def list_by_date(self, date: datetime.date) -> list[models.Booking]:
         """
         Return all bookings whose pickup time falls on the given date.

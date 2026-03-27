@@ -206,3 +206,58 @@ class TestUpdateStatus:
         assert len(history) == 2
         assert history[0].new_status == enums.BookingStatus.CONFIRMED
         assert history[1].new_status == enums.BookingStatus.COMPLETED
+
+
+class TestGetTimeline:
+    """Tests for BookingRepository.get_timeline."""
+
+    def test_returns_empty_list_for_booking_with_no_transitions(self, repo):
+        """
+        A booking that has never been transitioned returns an empty timeline.
+
+        :return: None
+        """
+        created = repo.create(BOOKING_CREATE)
+        result = repo.get_timeline(created.id)
+        assert result == []
+
+    def test_returns_one_entry_after_one_transition(self, repo):
+        """
+        A single status transition produces one timeline entry.
+
+        :return: None
+        """
+        created = repo.create(BOOKING_CREATE)
+        repo.update_status(created.id, enums.BookingStatus.CONFIRMED, enums.BookingStatus.PENDING)
+        result = repo.get_timeline(created.id)
+        assert len(result) == 1
+        assert result[0].old_status == enums.BookingStatus.PENDING
+        assert result[0].new_status == enums.BookingStatus.CONFIRMED
+        assert result[0].booking_id == created.id
+
+    def test_entries_ordered_chronologically(self, repo):
+        """
+        Multiple transitions are returned earliest-first.
+
+        :return: None
+        """
+        created = repo.create(BOOKING_CREATE)
+        repo.update_status(created.id, enums.BookingStatus.CONFIRMED, enums.BookingStatus.PENDING)
+        repo.update_status(created.id, enums.BookingStatus.COMPLETED, enums.BookingStatus.CONFIRMED)
+        result = repo.get_timeline(created.id)
+        assert len(result) == 2
+        assert result[0].new_status == enums.BookingStatus.CONFIRMED
+        assert result[1].new_status == enums.BookingStatus.COMPLETED
+
+    def test_entry_contains_booking_fields(self, repo):
+        """
+        Each timeline entry includes the booking's core fields for context.
+
+        :return: None
+        """
+        created = repo.create(BOOKING_CREATE)
+        repo.update_status(created.id, enums.BookingStatus.CONFIRMED, enums.BookingStatus.PENDING)
+        entry = repo.get_timeline(created.id)[0]
+        assert entry.passenger_name == "Alice Smith"
+        assert entry.flight_number == "BA123"
+        assert entry.transitioned_at is not None

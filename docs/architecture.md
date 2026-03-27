@@ -252,6 +252,30 @@ CREATE TABLE notification_log (
 );
 ```
 
+### `booking_timeline_view`
+
+A read-only MySQL view that joins `booking` with `booking_status_history` to expose a denormalised audit trail. Each row represents one recorded status transition and includes the booking's current details to avoid a second query at read time.
+
+```sql
+CREATE VIEW booking_timeline_view AS
+SELECT
+    b.id             AS booking_id,
+    b.passenger_name,
+    b.flight_number,
+    b.pickup_time,
+    b.pickup_location,
+    b.dropoff_location,
+    b.status         AS current_status,
+    h.id             AS history_id,
+    h.old_status,
+    h.new_status,
+    h.created_at     AS transitioned_at
+FROM booking b
+INNER JOIN booking_status_history h ON h.booking_id = b.id;
+```
+
+The view is managed via a manual Alembic migration (`op.execute()`). Alembic's autogenerate is configured with an `include_object` hook to ignore the view so that future `make db-revision` runs do not emit spurious `DROP TABLE` statements.
+
 ### Entity Relationship Diagram
 
 ```mermaid
@@ -305,10 +329,11 @@ erDiagram
 ## 5. API Design
 
 ```
-POST   /bookings                  → 201 Created + BookingResponse
-GET    /bookings/{id}             → 200 OK     + BookingResponse
-PATCH  /bookings/{id}/status      → 200 OK     + BookingResponse
-GET    /bookings?date=YYYY-MM-DD  → 200 OK     + list[BookingResponse]
+POST   /bookings                   → 201 Created + BookingResponse
+GET    /bookings/{id}              → 200 OK     + BookingResponse
+PATCH  /bookings/{id}/status       → 200 OK     + BookingResponse
+GET    /bookings/{id}/timeline     → 200 OK     + list[BookingTimelineEntryResponse]
+GET    /bookings?date=YYYY-MM-DD   → 200 OK     + list[BookingResponse]
 ```
 
 ### Request/Response schemas
@@ -334,6 +359,18 @@ class BookingResponse(BaseModel):
     status:           BookingStatus
     created_at:       datetime
     updated_at:       datetime
+
+class BookingTimelineEntryResponse(BaseModel):
+    booking_id:       int
+    passenger_name:   str
+    flight_number:    str
+    pickup_time:      datetime
+    pickup_location:  str
+    dropoff_location: str
+    current_status:   BookingStatus   # booking's current status
+    old_status:       BookingStatus   # status before this transition
+    new_status:       BookingStatus   # status after this transition
+    transitioned_at:  datetime
 ```
 
 ### Error responses
@@ -527,6 +564,8 @@ Type-safe, validated at startup. A missing or malformed `DATABASE_URL` causes an
 | Status storage | VARCHAR, not ENUM | No DDL changes when adding statuses |
 | Status validation | Domain layer (Python enum + transition map) | Testable, readable, not hidden in DB or triggers |
 | Status history | Separate `booking_status_history` table | Auditability and lifecycle analysis without bloating `booking` |
+| Timeline view | MySQL VIEW (`booking_timeline_view`) | Denormalised read model for the audit endpoint; avoids a join in application code; managed by a manual Alembic migration |
+| Timeline query | Raw SQL via `sqlalchemy.text()` | VIEW has no ORM model; using raw SQL keeps the ORM metadata clean and prevents autogenerate drift |
 | Index | Composite `(pickup_time, status)` | Covers date-only and date+status query patterns with one B-tree |
 | Repository pattern | Yes | Isolates ORM from business logic, enables unit testing with mocks |
 | Domain vs ORM models | Separate | Prevents ORM session state from leaking into business logic |

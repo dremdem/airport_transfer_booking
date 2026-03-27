@@ -86,6 +86,33 @@ def update_booking_status(
     )
 
 
+@router.get(
+    "/{booking_id}/timeline",
+    response_model=list[schemas.BookingTimelineEntryResponse],
+)
+def get_booking_timeline(
+    booking_id: int,
+    db: sqlalchemy.orm.Session = fastapi.Depends(dependencies.get_db),
+) -> list[schemas.BookingTimelineEntryResponse]:
+    """
+    Return the full status-transition history for a booking, ordered chronologically.
+
+    Each entry combines the booking's current details with one recorded
+    transition so the caller gets a self-contained audit trail without a
+    second request.  Returns an empty list for bookings with no transitions yet.
+
+    :param booking_id: numeric booking identifier from the URL path
+    :param db: database session provided by dependency injection
+    :return: list of timeline entries from earliest to latest transition
+    :raises BookingNotFoundError: translated to 404 by the app exception handler
+    """
+    svc = services.BookingService(repository.BookingRepository(db))
+    return [
+        schemas.BookingTimelineEntryResponse.model_validate(entry)
+        for entry in svc.get_timeline(booking_id)
+    ]
+
+
 @router.get("", response_model=list[schemas.BookingResponse])
 def list_bookings_by_date(
     date: datetime.date,
