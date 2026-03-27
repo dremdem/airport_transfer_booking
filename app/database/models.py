@@ -36,13 +36,13 @@ class BookingORM(Base):
     created_at = sqlalchemy.Column(
         sqlalchemy.DateTime,
         nullable=False,
-        default=datetime.datetime.utcnow,
+        default=lambda: datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None),
     )
     updated_at = sqlalchemy.Column(
         sqlalchemy.DateTime,
         nullable=False,
-        default=datetime.datetime.utcnow,
-        onupdate=datetime.datetime.utcnow,
+        default=lambda: datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None),
+        onupdate=lambda: datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None),
     )
 
     status_history = sqlalchemy.orm.relationship(
@@ -79,7 +79,7 @@ class BookingStatusHistoryORM(Base):
     created_at = sqlalchemy.Column(
         sqlalchemy.DateTime,
         nullable=False,
-        default=datetime.datetime.utcnow,
+        default=lambda: datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None),
     )
 
     booking = sqlalchemy.orm.relationship("BookingORM", back_populates="status_history")
@@ -109,7 +109,7 @@ class NotificationLogORM(Base):
     created_at = sqlalchemy.Column(
         sqlalchemy.DateTime,
         nullable=False,
-        default=datetime.datetime.utcnow,
+        default=lambda: datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None),
     )
 
     booking = sqlalchemy.orm.relationship("BookingORM", back_populates="notification_logs")
