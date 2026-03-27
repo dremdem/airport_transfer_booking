@@ -101,7 +101,7 @@ export default function BookingForm({ onCreated }: Props) {
       {error && <p className={styles.error}>{error}</p>}
 
       <button className={styles.submit} type="submit" disabled={loading}>
-        {loading ? 'Processing…' : 'Reserve Transfer'}
+        <span>{loading ? 'Processing…' : 'Reserve Transfer'}</span>
       </button>
     </form>
   )
