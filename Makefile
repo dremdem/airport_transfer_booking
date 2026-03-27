@@ -1,4 +1,4 @@
-.PHONY: help build up down lint format check test migrate db-revision db-reset db-connect
+.PHONY: help build up down lint format check test migrate seed-demo db-revision db-reset db-connect
 
 help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -25,6 +25,9 @@ test: ## Run the full test suite
 
 migrate: ## Apply pending migrations
 	docker compose run --rm app alembic upgrade head
+
+seed-demo: ## Seed demo bookings into the live database (appends — safe to run multiple times)
+	docker compose run --rm app python -m scripts.seed_demo_data
 
 db-revision: ## Create a new migration (usage: make db-revision MSG="describe change")
 	docker compose run --rm app alembic revision --autogenerate -m "$(MSG)"

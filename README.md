@@ -6,6 +6,7 @@ A REST API for managing airport transfer bookings — built with FastAPI, SQLAlc
 
 - [Quick Start](#quick-start)
 - [Frontend](#frontend)
+- [Demo Data](#demo-data)
 - [Running Tests](#running-tests)
 - [Running Migrations](#running-migrations)
 - [Makefile Reference](#makefile-reference)
@@ -75,6 +76,37 @@ Open <http://localhost:5173>. The Vite dev server proxies `/api` requests to `ht
 
 ---
 
+## Demo Data
+
+Populate the live database with a representative set of bookings across all statuses:
+
+```bash
+make up && make migrate   # service must be running
+make seed-demo
+```
+
+This inserts 7 bookings (2 pending, 2 confirmed, 2 completed, 1 cancelled) and prints a summary:
+
+```
+Seeding demo data…
+
+  [  pending]  #1    Ellie Arroway — Heathrow T5 → Royal Observatory, Greenwich
+  [  pending]  #2    Duncan Idaho — Gatwick South Terminal → Imperial War Museum
+  [confirmed]  #3    Naomi Nagata — London City Airport → Canary Wharf, One Canada Square
+  [confirmed]  #4    Roy Batty — Stansted Airport → Tannhäuser Gate Hotel, Southwark
+  [completed]  #5    Amos Burton — Luton Airport → East India Club, St James's Square
+  [completed]  #6    Chrisjen Avasarala — Heathrow T3 → Foreign, Commonwealth & Development Office
+  [cancelled]  #7    Alex Kamal — Gatwick North Terminal → Wembley Stadium
+
+✓ Seeded 7 demo bookings.
+```
+
+> Each run **appends** new rows — it does not wipe the database first. Run it once before a demo session; run it again if you want more rows.
+
+See [`docs/manual_api_workflow.md`](docs/manual_api_workflow.md) for a step-by-step `curl` + `jq` walkthrough of every API endpoint.
+
+---
+
 ## Running Tests
 
 ```bash
@@ -114,6 +146,7 @@ make db-reset
 | `make up` | Start all services in the background |
 | `make down` | Stop and remove containers |
 | `make migrate` | Apply pending Alembic migrations |
+| `make seed-demo` | Seed 7 demo bookings into the live database |
 | `make test` | Run the full test suite |
 | `make lint` | Run the ruff linter |
 | `make format` | Run the ruff formatter |
@@ -140,6 +173,9 @@ airport_transfer_booking/
 │   ├── unit/             # Domain logic tests — no DB, no HTTP
 │   ├── api/              # HTTP contract tests — status codes, validation, response shape
 │   └── integration/      # Full-stack tests — route → service → repository → MySQL
+├── scripts/
+│   └── seed_demo_data.py # Demo data seeder — `make seed-demo`
+├── docs/                 # Architecture, decisions, and API workflow guide
 ├── docker/
 │   └── init.sql          # Creates transfer_bookings_test schema on first container start
 ├── docker-compose.yml
