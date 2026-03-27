@@ -22,8 +22,9 @@ def db_engine():
     :return: SQLAlchemy Engine bound to the test database
     """
     alembic_cfg = alembic.config.Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", config.settings.test_database_url)
     alembic.command.upgrade(alembic_cfg, "head")
-    engine = sqlalchemy.create_engine(config.settings.database_url)
+    engine = sqlalchemy.create_engine(config.settings.test_database_url)
     yield engine
     engine.dispose()
     alembic.command.downgrade(alembic_cfg, "base")
