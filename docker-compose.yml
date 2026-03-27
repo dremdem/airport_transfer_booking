@@ -6,11 +6,14 @@ services:
       MYSQL_DATABASE: transfer_bookings
     ports:
       - "3306:3306"
+    volumes:
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "mysql", "-uroot", "-proot", "-e", "SELECT 1"]
       interval: 5s
       timeout: 5s
       retries: 10
+      start_period: 15s
 
   app:
     build: .
@@ -18,6 +21,7 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: mysql+pymysql://root:root@db:3306/transfer_bookings
+      TEST_DATABASE_URL: mysql+pymysql://root:root@db:3306/transfer_bookings_test
     depends_on:
       db:
         condition: service_healthy

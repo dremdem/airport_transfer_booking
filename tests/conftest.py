@@ -19,11 +19,22 @@ def db_engine():
 
     All tables are removed via ``downgrade base`` at session teardown.
 
+    Raises ``RuntimeError`` if ``test_database_url`` and ``database_url`` resolve
+    to the same value — a misconfiguration that would cause teardown to wipe the
+    live application database.
+
     :return: SQLAlchemy Engine bound to the test database
+    :raises RuntimeError: if test and live URLs point at the same database
     """
+    if config.settings.test_database_url == config.settings.database_url:
+        raise RuntimeError(
+            "TEST_DATABASE_URL must differ from DATABASE_URL. "
+            "Running tests against the live database would destroy all data on teardown."
+        )
     alembic_cfg = alembic.config.Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", config.settings.test_database_url)
     alembic.command.upgrade(alembic_cfg, "head")
-    engine = sqlalchemy.create_engine(config.settings.database_url)
+    engine = sqlalchemy.create_engine(config.settings.test_database_url)
     yield engine
     engine.dispose()
     alembic.command.downgrade(alembic_cfg, "base")

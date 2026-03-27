@@ -9,6 +9,23 @@ import app.database.models as database_models
 target_metadata = database_models.Base.metadata
 
 
+def _get_url() -> str:
+    """
+    Resolve the database URL for migrations.
+
+    Prefers the ``sqlalchemy.url`` key set in the Alembic config object
+    (e.g. overridden programmatically in test fixtures via
+    ``alembic_cfg.set_main_option("sqlalchemy.url", ...)``).
+    Falls back to ``config.settings.database_url`` for normal CLI use.
+
+    :return: SQLAlchemy connection URL string
+    """
+    return (
+        alembic.context.config.get_main_option("sqlalchemy.url")
+        or config.settings.database_url
+    )
+
+
 def run_migrations_offline() -> None:
     """
     Run migrations in offline mode (no live DB connection required).
@@ -16,7 +33,7 @@ def run_migrations_offline() -> None:
     Emits SQL to stdout instead of executing against a live database.
     """
     alembic.context.configure(
-        url=config.settings.database_url,
+        url=_get_url(),
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -29,7 +46,7 @@ def run_migrations_online() -> None:
     """
     Run migrations in online mode (connects to the database and applies changes).
     """
-    connectable = sqlalchemy.create_engine(config.settings.database_url)
+    connectable = sqlalchemy.create_engine(_get_url())
     with connectable.connect() as connection:
         alembic.context.configure(
             connection=connection,
