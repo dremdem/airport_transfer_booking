@@ -481,26 +481,34 @@ Test domain layer behaviour in isolation — no database, no HTTP, no I/O.
 | `test_invalid_status_transitions` | Disallowed transitions raise `InvalidStatusTransitionError` |
 | `test_create_booking_sets_pending` | New bookings always start as `pending` |
 
+### Responsibility boundary
+
+Each test suite has a distinct, non-overlapping purpose:
+
+| Suite | Owns | Does not duplicate |
+|-------|------|--------------------|
+| `tests/api/` | HTTP contract: status codes, response shape, input validation, exception mapping, notification enqueue | Multi-step state flows |
+| `tests/integration/test_bookings_api.py` | Multi-step flows that span several transitions and prove DB persistence end-to-end | HTTP contract details |
+| `tests/integration/test_booking_repository.py` | Repository layer against real MySQL | HTTP layer |
+| `tests/integration/test_notifications.py` | `send_notification` → `notification_log` row | HTTP layer |
+| `tests/integration/test_create_notification_e2e.py` | Full route → BackgroundTasks → DB, no mocks | Single-layer concerns |
+| `tests/unit/` | Domain business rules, no I/O | Everything else |
+
 ### API tests (`tests/api/`)
 
-Test HTTP-layer concerns: status codes, response shape, input validation, and header behaviour. Use `TestClient` backed by the real test MySQL database (via `db_session` dependency override). `send_notification` is patched to a no-op via an `autouse` fixture so notification side-effects do not leak into HTTP-layer assertions.
+Test HTTP-layer concerns: status codes, response shape, input validation, and exception mapping. Use `TestClient` backed by the real test MySQL database (via `db_session` dependency override). `send_notification` is patched to a no-op via an `autouse` fixture so notification side-effects do not affect HTTP-layer assertions.
 
 ### Integration tests (`tests/integration/`)
 
 Test the full request cycle and the repository layer against a real MySQL instance.
 
-**`test_bookings_api.py`** — HTTP → domain → DB round-trip. The 8 tests named in the original Phase 6 spec:
+**`test_bookings_api.py`** — Multi-step end-to-end flows not covered by the API suite:
 
 | Test | What it validates |
 |------|-------------------|
-| `test_create_booking_returns_201` | Full creation flow, response shape, default `pending` status |
-| `test_get_booking_by_id` | Retrieval returns correct data |
-| `test_pending_to_confirmed` | Valid transition works end-to-end |
-| `test_confirmed_to_completed` | Valid transition works end-to-end |
-| `test_pending_to_cancelled` | Valid business path exercises full stack |
-| `test_invalid_transition_returns_422` | `completed → pending` returns 422 |
-| `test_get_nonexistent_booking_returns_404` | Proper error for missing resource |
-| `test_list_bookings_by_date` | Date filter returns correct subset |
+| `test_full_booking_lifecycle` | Create then retrieve — anchors full DB wiring |
+| `test_confirmed_to_completed` | Two-step transition persisted correctly |
+| `test_pending_to_cancelled` | Single-step cancellation from pending |
 
 `send_notification` is suppressed with a module-scoped `autouse` fixture so notification writes do not affect booking assertions.
 

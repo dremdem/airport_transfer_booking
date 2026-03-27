@@ -1,8 +1,19 @@
-"""Integration tests for the bookings API — full HTTP → domain → DB round-trip.
+"""Integration tests for multi-step booking flows — full HTTP → domain → DB round-trip.
 
-Uses a real MySQL test database brought to head via Alembic migrations.
-send_notification is suppressed with a no-op for the duration of this module
-so background-task writes do not leak into test assertions.
+Responsibility boundary
+-----------------------
+tests/api/test_bookings.py  — HTTP contract: status codes, response shape,
+                              input validation, exception mapping, notification
+                              enqueue.  No duplicate happy-path flows here.
+
+tests/integration/test_bookings_api.py (this file) — end-to-end flows that
+                              span multiple state transitions and prove the
+                              full stack (route → service → repository → MySQL)
+                              works correctly for scenarios not covered by the
+                              API suite.
+
+send_notification is suppressed with a module-scoped autouse fixture so
+notification_log writes do not interfere with booking assertions.
 """
 
 import unittest.mock
@@ -24,12 +35,8 @@ def suppress_send_notification():
     """
     Replace send_notification with a no-op for every test in this module.
 
-    The background task opens its own session and commits independently, which
-    would write notification_log rows that are visible to later assertions under
-    READ COMMITTED.  Suppressing it keeps each test focused on booking behaviour.
-
-    autouse=True scopes this to the module — it does not affect other integration
-    test modules that need send_notification to run for real.
+    autouse=True scopes this to the module only — it does not affect other
+    integration test modules that need send_notification to run for real.
 
     :return: None
     """
@@ -38,49 +45,31 @@ def suppress_send_notification():
 
 
 class TestBookingsAPI:
-    """Full HTTP → domain → DB integration tests for the /bookings routes."""
+    """End-to-end booking flows that span multiple state transitions."""
 
-    def test_create_booking_returns_201(self, client):
+    def test_full_booking_lifecycle(self, client):
         """
-        POST /bookings with valid data persists the booking and returns 201 with
-        pending status and all expected fields.
+        A booking can be created and immediately retrieved with correct data.
+
+        Anchors the full DB wiring: route → service → repository → MySQL → response.
+        Complements the HTTP-contract tests in tests/api/ by verifying the
+        persisted state, not just the response shape.
 
         :return: None
         """
         response = client.post("/bookings", json=VALID_PAYLOAD)
         assert response.status_code == 201
-        data = response.json()
-        assert data["status"] == "pending"
-        assert data["passenger_name"] == VALID_PAYLOAD["passenger_name"]
-        assert data["flight_number"] == VALID_PAYLOAD["flight_number"]
-        assert "id" in data
+        booking_id = response.json()["id"]
 
-    def test_get_booking_by_id(self, client):
-        """
-        GET /bookings/{id} returns the persisted booking with correct data.
-
-        :return: None
-        """
-        created = client.post("/bookings", json=VALID_PAYLOAD).json()
-        response = client.get(f"/bookings/{created['id']}")
-        assert response.status_code == 200
-        assert response.json()["id"] == created["id"]
-        assert response.json()["passenger_name"] == VALID_PAYLOAD["passenger_name"]
-
-    def test_pending_to_confirmed(self, client):
-        """
-        PATCH /bookings/{id}/status transitions a pending booking to confirmed.
-
-        :return: None
-        """
-        booking_id = client.post("/bookings", json=VALID_PAYLOAD).json()["id"]
-        response = client.patch(f"/bookings/{booking_id}/status", json={"status": "confirmed"})
-        assert response.status_code == 200
-        assert response.json()["status"] == "confirmed"
+        get_response = client.get(f"/bookings/{booking_id}")
+        assert get_response.status_code == 200
+        assert get_response.json()["id"] == booking_id
+        assert get_response.json()["status"] == "pending"
 
     def test_confirmed_to_completed(self, client):
         """
-        PATCH /bookings/{id}/status transitions a confirmed booking to completed.
+        A booking can transition pending → confirmed → completed across two
+        separate PATCH requests, with the final state persisted correctly.
 
         :return: None
         """
@@ -92,7 +81,7 @@ class TestBookingsAPI:
 
     def test_pending_to_cancelled(self, client):
         """
-        PATCH /bookings/{id}/status cancels a pending booking directly.
+        A booking can be cancelled directly from pending in a single transition.
 
         :return: None
         """
@@ -100,39 +89,3 @@ class TestBookingsAPI:
         response = client.patch(f"/bookings/{booking_id}/status", json={"status": "cancelled"})
         assert response.status_code == 200
         assert response.json()["status"] == "cancelled"
-
-    def test_invalid_transition_returns_422(self, client):
-        """
-        PATCH /bookings/{id}/status returns 422 for a disallowed transition
-        (completed → pending).
-
-        :return: None
-        """
-        booking_id = client.post("/bookings", json=VALID_PAYLOAD).json()["id"]
-        client.patch(f"/bookings/{booking_id}/status", json={"status": "confirmed"})
-        client.patch(f"/bookings/{booking_id}/status", json={"status": "completed"})
-        response = client.patch(f"/bookings/{booking_id}/status", json={"status": "pending"})
-        assert response.status_code == 422
-
-    def test_get_nonexistent_booking_returns_404(self, client):
-        """
-        GET /bookings/{id} returns 404 when the booking does not exist.
-
-        :return: None
-        """
-        response = client.get("/bookings/999999")
-        assert response.status_code == 404
-
-    def test_list_bookings_by_date(self, client):
-        """
-        GET /bookings?date=YYYY-MM-DD returns only bookings whose pickup_time
-        falls on that date.
-
-        :return: None
-        """
-        client.post("/bookings", json=VALID_PAYLOAD)
-        response = client.get("/bookings", params={"date": "2025-06-01"})
-        assert response.status_code == 200
-        results = response.json()
-        assert len(results) >= 1
-        assert all(r["pickup_time"].startswith("2025-06-01") for r in results)
