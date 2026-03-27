@@ -3,10 +3,10 @@
 help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-build: ## Rebuild the Docker image (run after pyproject.toml / Dockerfile changes)
+build: ## Rebuild all Docker images (app + frontend — run after dependency or Dockerfile changes)
 	docker compose build
 
-up: ## Start all services in background (without rebuilding)
+up: ## Start all services in background: db, app, frontend (http://localhost:3000)
 	docker compose up -d
 
 down: ## Stop and remove containers
