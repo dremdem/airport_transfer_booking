@@ -110,8 +110,10 @@ def seed() -> None:
                 status=enums.BookingStatus.PENDING,
             )
             booking = repo.create(booking_create)
+            current_status = enums.BookingStatus.PENDING
             for step in _TRANSITION_PATH[final_status]:
-                booking = repo.update_status(booking.id, step)
+                booking = repo.update_status(booking.id, step, current_status)
+                current_status = step
             print(
                 f"  [{booking.status.value:>9}]  #{booking.id:<5} "
                 f"{booking.passenger_name} — {booking.pickup_location} → {booking.dropoff_location}"
