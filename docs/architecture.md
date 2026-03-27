@@ -336,6 +336,27 @@ GET    /bookings/{id}/timeline     → 200 OK     + list[BookingTimelineEntryRes
 GET    /bookings?date=YYYY-MM-DD   → 200 OK     + list[BookingResponse]
 ```
 
+#### Timeline endpoint — initial-state guarantee
+
+`GET /bookings/{id}/timeline` always returns at least one entry. For a booking
+that has never had its status changed, the service synthesises a creation entry:
+
+| Field | Value |
+|-------|-------|
+| `old_status` | `null` — no prior state exists |
+| `new_status` | booking's current status (`pending`) |
+| `transitioned_at` | booking's `created_at` timestamp |
+
+**Why in the service layer, not the VIEW?**
+An alternative would be to change `booking_timeline_view` from `INNER JOIN` to
+`LEFT JOIN` and add `COALESCE` expressions for the nullable columns. That would
+work, but it has two drawbacks: it would require a new Alembic migration for a
+pure behaviour change (no schema change), and it would hide a product rule
+("always show the initial state") inside a SQL VIEW where it is harder to
+discover, test, and reason about. Keeping the fallback in `BookingService`
+makes it unit-testable without a database and explicit to anyone reading the
+business logic.
+
 ### Request/Response schemas
 
 ```python

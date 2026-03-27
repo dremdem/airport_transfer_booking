@@ -100,6 +100,10 @@ class BookingService:
         booking = self.get_by_id(booking_id)
         entries = self._repo.get_timeline(booking_id)
         if not entries:
+            # Synthesise a creation entry rather than pushing this fallback into
+            # the VIEW (LEFT JOIN + COALESCE). "Always show the initial state" is
+            # a product rule — it belongs here where it is unit-testable and
+            # visible, not hidden in SQL. See docs/architecture.md §5 for details.
             return [models.BookingTimelineEntry(
                 booking_id=booking.id,
                 passenger_name=booking.passenger_name,
