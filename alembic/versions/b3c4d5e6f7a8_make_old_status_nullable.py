@@ -30,6 +30,12 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    # NULL old_status rows (creation events) must be back-filled before MySQL
+    # will accept the NOT NULL constraint; use empty string as the sentinel
+    # value that the original NOT NULL schema would have required.
+    op.execute(
+        "UPDATE booking_status_history SET old_status = '' WHERE old_status IS NULL"
+    )
     op.alter_column(
         'booking_status_history',
         'old_status',
