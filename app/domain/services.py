@@ -85,15 +85,34 @@ class BookingService:
 
         Existence is verified first so that an unknown ``booking_id`` raises
         ``BookingNotFoundError`` (→ 404) rather than silently returning an
-        empty list that the caller cannot distinguish from a booking with no
-        transitions yet.
+        empty list.
+
+        When no transitions have been recorded yet, a single synthetic entry is
+        returned representing the booking's initial creation state.  Its
+        ``old_status`` is ``None`` (no prior state exists) and ``transitioned_at``
+        is the booking's ``created_at`` timestamp.
 
         :param booking_id: numeric booking identifier
-        :return: list of BookingTimelineEntry from earliest to latest transition
+        :return: list of BookingTimelineEntry from earliest to latest transition;
+                 always contains at least one entry for existing bookings
         :raises BookingNotFoundError: if no booking with that ID exists
         """
-        self.get_by_id(booking_id)
-        return self._repo.get_timeline(booking_id)
+        booking = self.get_by_id(booking_id)
+        entries = self._repo.get_timeline(booking_id)
+        if not entries:
+            return [models.BookingTimelineEntry(
+                booking_id=booking.id,
+                passenger_name=booking.passenger_name,
+                flight_number=booking.flight_number,
+                pickup_time=booking.pickup_time,
+                pickup_location=booking.pickup_location,
+                dropoff_location=booking.dropoff_location,
+                current_status=booking.status,
+                old_status=None,
+                new_status=booking.status,
+                transitioned_at=booking.created_at,
+            )]
+        return entries
 
     def list_by_date(self, date: datetime.date) -> list[models.Booking]:
         """

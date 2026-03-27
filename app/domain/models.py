@@ -60,7 +60,7 @@ class BookingTimelineEntry:
     pickup_location: str
     dropoff_location: str
     current_status: enums.BookingStatus
-    old_status: enums.BookingStatus
+    old_status: enums.BookingStatus | None
     new_status: enums.BookingStatus
     transitioned_at: datetime.datetime
 

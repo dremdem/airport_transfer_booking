@@ -38,9 +38,10 @@ class BookingTimelineEntryResponse(pydantic.BaseModel):
     """
     One entry in GET /bookings/{id}/timeline.
 
-    Each entry represents a single recorded status transition for the booking,
-    combining the booking's current details with the transition data so the
-    caller does not need to make a second request for context.
+    Each entry represents either a recorded status transition or, for a booking
+    with no transitions yet, a synthetic creation entry.  ``old_status`` is
+    ``None`` for the synthetic creation entry (no prior state exists); it is
+    always set for real transition entries.
     """
 
     model_config = pydantic.ConfigDict(from_attributes=True)
@@ -52,7 +53,7 @@ class BookingTimelineEntryResponse(pydantic.BaseModel):
     pickup_location: str
     dropoff_location: str
     current_status: enums.BookingStatus
-    old_status: enums.BookingStatus
+    old_status: enums.BookingStatus | None
     new_status: enums.BookingStatus
     transitioned_at: datetime.datetime
 

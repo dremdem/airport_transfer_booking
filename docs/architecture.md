@@ -332,7 +332,7 @@ erDiagram
 POST   /bookings                   → 201 Created + BookingResponse
 GET    /bookings/{id}              → 200 OK     + BookingResponse
 PATCH  /bookings/{id}/status       → 200 OK     + BookingResponse
-GET    /bookings/{id}/timeline     → 200 OK     + list[BookingTimelineEntryResponse]
+GET    /bookings/{id}/timeline     → 200 OK     + list[BookingTimelineEntryResponse]  # always ≥1 entry
 GET    /bookings?date=YYYY-MM-DD   → 200 OK     + list[BookingResponse]
 ```
 
@@ -367,9 +367,9 @@ class BookingTimelineEntryResponse(BaseModel):
     pickup_time:      datetime
     pickup_location:  str
     dropoff_location: str
-    current_status:   BookingStatus   # booking's current status
-    old_status:       BookingStatus   # status before this transition
-    new_status:       BookingStatus   # status after this transition
+    current_status:   BookingStatus        # booking's current status
+    old_status:       BookingStatus | None  # None for the synthetic creation entry
+    new_status:       BookingStatus        # status after this transition
     transitioned_at:  datetime
 ```
 

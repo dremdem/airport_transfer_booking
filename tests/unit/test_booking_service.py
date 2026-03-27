@@ -133,3 +133,69 @@ class TestStatusTransitions:
         service = make_service(booking)
         with pytest.raises(exceptions.InvalidStatusTransitionError):
             service.update_status(booking_id=1, new_status=to_status)
+
+
+class TestGetTimeline:
+    """Tests for BookingService.get_timeline."""
+
+    def test_returns_synthetic_entry_when_no_transitions(self):
+        """
+        When the repository returns an empty list, the service synthesises a
+        single creation entry so callers always see at least the initial state.
+
+        :return: None
+        """
+        booking = make_booking()
+        repo = unittest.mock.MagicMock()
+        repo.get_by_id.return_value = booking
+        repo.get_timeline.return_value = []
+        service = services.BookingService(repo)
+        result = service.get_timeline(booking_id=1)
+        assert len(result) == 1
+        assert result[0].old_status is None
+        assert result[0].new_status == enums.BookingStatus.PENDING
+        assert result[0].current_status == enums.BookingStatus.PENDING
+        assert result[0].transitioned_at == booking.created_at
+
+    def test_synthetic_entry_contains_booking_fields(self):
+        """
+        The synthetic creation entry carries the booking's identifying fields.
+
+        :return: None
+        """
+        booking = make_booking()
+        repo = unittest.mock.MagicMock()
+        repo.get_by_id.return_value = booking
+        repo.get_timeline.return_value = []
+        service = services.BookingService(repo)
+        result = service.get_timeline(booking_id=1)
+        entry = result[0]
+        assert entry.booking_id == booking.id
+        assert entry.passenger_name == booking.passenger_name
+        assert entry.flight_number == booking.flight_number
+
+    def test_returns_repo_entries_when_transitions_exist(self):
+        """
+        When the repository returns entries, they are passed through unchanged.
+
+        :return: None
+        """
+        booking = make_booking()
+        existing_entry = models.BookingTimelineEntry(
+            booking_id=1,
+            passenger_name="Alice Smith",
+            flight_number="BA123",
+            pickup_time=booking.pickup_time,
+            pickup_location="Heathrow T2",
+            dropoff_location="City Hotel",
+            current_status=enums.BookingStatus.CONFIRMED,
+            old_status=enums.BookingStatus.PENDING,
+            new_status=enums.BookingStatus.CONFIRMED,
+            transitioned_at=datetime.datetime(2025, 6, 1, 9, 0),
+        )
+        repo = unittest.mock.MagicMock()
+        repo.get_by_id.return_value = booking
+        repo.get_timeline.return_value = [existing_entry]
+        service = services.BookingService(repo)
+        result = service.get_timeline(booking_id=1)
+        assert result == [existing_entry]

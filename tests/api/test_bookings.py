@@ -248,9 +248,10 @@ class TestListBookingsByDate:
 class TestGetBookingTimeline:
     """Tests for GET /bookings/{id}/timeline."""
 
-    def test_returns_empty_list_for_booking_with_no_transitions(self, client):
+    def test_returns_synthetic_creation_entry_for_booking_with_no_transitions(self, client):
         """
-        A booking that has never had its status changed returns an empty timeline.
+        A booking with no recorded transitions returns a single synthetic entry
+        representing its initial creation state, with old_status null.
 
         :return: None
         """
@@ -258,7 +259,11 @@ class TestGetBookingTimeline:
         booking_id = create_resp.json()["id"]
         response = client.get(f"/bookings/{booking_id}/timeline")
         assert response.status_code == 200
-        assert response.json() == []
+        entries = response.json()
+        assert len(entries) == 1
+        assert entries[0]["old_status"] is None
+        assert entries[0]["new_status"] == "pending"
+        assert entries[0]["current_status"] == "pending"
 
     def test_returns_one_entry_after_status_transition(self, client):
         """
