@@ -13,6 +13,19 @@ import sqlalchemy.orm
 Base = sqlalchemy.orm.declarative_base()
 
 
+def utcnow_naive() -> datetime.datetime:
+    """
+    Return the current UTC time as a naive datetime (no tzinfo).
+
+    MySQL's DATETIME type has no timezone support, so all timestamps are stored
+    as naive values.  Using UTC as the source keeps them consistent across
+    environments regardless of the server's local timezone.
+
+    :return: current UTC time without tzinfo
+    """
+    return datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+
+
 class BookingORM(Base):
     """
     ORM model for the ``booking`` table.
@@ -36,13 +49,13 @@ class BookingORM(Base):
     created_at = sqlalchemy.Column(
         sqlalchemy.DateTime,
         nullable=False,
-        default=datetime.datetime.utcnow,
+        default=utcnow_naive,
     )
     updated_at = sqlalchemy.Column(
         sqlalchemy.DateTime,
         nullable=False,
-        default=datetime.datetime.utcnow,
-        onupdate=datetime.datetime.utcnow,
+        default=utcnow_naive,
+        onupdate=utcnow_naive,
     )
 
     status_history = sqlalchemy.orm.relationship(
@@ -79,7 +92,7 @@ class BookingStatusHistoryORM(Base):
     created_at = sqlalchemy.Column(
         sqlalchemy.DateTime,
         nullable=False,
-        default=datetime.datetime.utcnow,
+        default=utcnow_naive,
     )
 
     booking = sqlalchemy.orm.relationship("BookingORM", back_populates="status_history")
@@ -109,7 +122,7 @@ class NotificationLogORM(Base):
     created_at = sqlalchemy.Column(
         sqlalchemy.DateTime,
         nullable=False,
-        default=datetime.datetime.utcnow,
+        default=utcnow_naive,
     )
 
     booking = sqlalchemy.orm.relationship("BookingORM", back_populates="notification_logs")
