@@ -1,0 +1,194 @@
+.container {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2rem;
+  box-shadow: var(--shadow), var(--glow);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.back {
+  align-self: flex-start;
+  background: none;
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  padding: 0.35rem 0;
+}
+
+.back:hover { color: var(--gold); }
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.9rem;
+  color: var(--gold-light);
+}
+
+.sub {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin-top: 0.2rem;
+}
+
+.divider {
+  height: 1px;
+  background: var(--border);
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  font-size: 0.85rem;
+}
+
+.rowLabel {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+  flex-shrink: 0;
+}
+
+.rowValue {
+  color: var(--text);
+  text-align: right;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.actionsLabel {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.actionButtons {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.actionBtn {
+  padding: 0.45rem 1.2rem;
+  border-radius: 100px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: transparent;
+  transition: all var(--ease);
+}
+
+.confirmed { border: 1px solid var(--status-confirmed); color: var(--status-confirmed); }
+.confirmed:hover:not(:disabled) { background: var(--status-confirmed); color: var(--bg); }
+
+.completed { border: 1px solid var(--status-completed); color: var(--status-completed); }
+.completed:hover:not(:disabled) { background: var(--status-completed); color: var(--bg); }
+
+.cancelled { border: 1px solid var(--status-cancelled); color: var(--status-cancelled); }
+.cancelled:hover:not(:disabled) { background: var(--status-cancelled); color: var(--bg); }
+
+.actionBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.error {
+  font-size: 0.78rem;
+  color: var(--status-cancelled);
+  padding: 0.4rem 0.75rem;
+  background: rgba(232,128,109,0.08);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(232,128,109,0.2);
+}
+
+.timelineSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.timelineTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.1rem;
+  color: var(--text-dim);
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+}
+
+.ornament {
+  color: var(--gold);
+  font-size: 0.6rem;
+  opacity: 0.7;
+  font-style: normal;
+}
+
+.loadError {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--status-cancelled);
+  font-size: 0.875rem;
+}
+
+.retryBtn {
+  background: transparent;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  padding: 0.5rem 1.5rem;
+  border-radius: 100px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.retryBtn:hover { background: var(--gold-dim); }
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--border);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }

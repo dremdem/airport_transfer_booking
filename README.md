@@ -1,10 +1,11 @@
 # Airport Transfer Booking Service
 
-A REST API for managing airport transfer bookings — built with FastAPI, SQLAlchemy, MySQL, and Docker Compose.
+A REST API for managing airport transfer bookings — built with FastAPI, SQLAlchemy, MySQL, and Docker Compose. Includes an optional React + TypeScript SPA frontend.
 
 ## Table of Contents
 
 - [Quick Start](#quick-start)
+- [Frontend](#frontend)
 - [Running Tests](#running-tests)
 - [Running Migrations](#running-migrations)
 - [Makefile Reference](#makefile-reference)
@@ -41,6 +42,36 @@ Interactive docs (Swagger UI): <http://localhost:8000/docs>
 | `DEBUG` | `false` | Enable debug mode |
 
 > **Note:** The hostname `db` only resolves from inside the Docker Compose network. If you run the app outside Docker (e.g. a local virtual environment), replace `db` with `localhost`.
+
+---
+
+## Frontend
+
+A minimal SPA (React + TypeScript + Vite) lives in `frontend/`. It covers all booking flows: create, list by date, booking details, timeline, and status updates.
+
+### Via Docker Compose (recommended)
+
+The frontend is part of the full stack. `make up` starts it alongside the API and database:
+
+```bash
+make build   # first time, or after frontend dependency/Dockerfile changes
+make up && make migrate
+```
+
+Open <http://localhost:3000>. nginx serves the built app and proxies `/api/*` to the `app` service — no CORS, no separate origin.
+
+### Local dev (Vite dev server)
+
+**Prerequisites:** Node.js 18+
+
+```bash
+make up && make migrate   # backend must be running
+cd frontend
+npm install
+npm run dev
+```
+
+Open <http://localhost:5173>. The Vite dev server proxies `/api` requests to `http://localhost:8000`.
 
 ---
 

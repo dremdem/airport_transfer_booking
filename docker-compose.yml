@@ -33,5 +33,12 @@ services:
       - ./alembic.ini:/app/alembic.ini
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - app
+
 volumes:
   db_data:

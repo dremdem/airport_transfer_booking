@@ -1,0 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg:         #080c18;
+  --surface:    #0f1626;
+  --surface-2:  #161f35;
+  --border:     rgba(180, 150, 80, 0.16);
+  --border-hi:  rgba(201, 168, 76, 0.4);
+  --gold:       #c9a84c;
+  --gold-light: #e8c96d;
+  --gold-dim:   rgba(201, 168, 76, 0.10);
+  --text:       #ddd8cc;
+  --text-dim:   #7a7a8a;
+  --text-faint: #3a3a4a;
+
+  --status-pending:   #e8c96d;
+  --status-confirmed: #6db8e8;
+  --status-completed: #6de8a4;
+  --status-cancelled: #e8806d;
+
+  --radius:    14px;
+  --radius-sm: 8px;
+  --shadow:    0 12px 40px rgba(0,0,0,0.6);
+  --glow:      0 0 32px rgba(201,168,76,0.07);
+  --ease:      0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 16px; scroll-behavior: smooth; }
+
+body {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 400;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  line-height: 1.2;
+}
+
+button {
+  font-family: 'Montserrat', sans-serif;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: all var(--ease);
+}
+
+input, select, textarea {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.875rem;
+  outline: none;
+}
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
