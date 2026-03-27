@@ -243,3 +243,84 @@ class TestListBookingsByDate:
         """
         response = client.get("/bookings")
         assert response.status_code == 422
+
+
+class TestGetBookingTimeline:
+    """Tests for GET /bookings/{id}/timeline."""
+
+    def test_returns_synthetic_creation_entry_for_booking_with_no_transitions(self, client):
+        """
+        A booking with no recorded transitions returns a single synthetic entry
+        representing its initial creation state, with old_status null.
+
+        :return: None
+        """
+        create_resp = client.post("/bookings", json=VALID_PAYLOAD)
+        booking_id = create_resp.json()["id"]
+        response = client.get(f"/bookings/{booking_id}/timeline")
+        assert response.status_code == 200
+        entries = response.json()
+        assert len(entries) == 1
+        assert entries[0]["old_status"] is None
+        assert entries[0]["new_status"] == "pending"
+        assert entries[0]["current_status"] == "pending"
+
+    def test_returns_one_entry_after_status_transition(self, client):
+        """
+        One timeline entry is returned after a single status transition.
+
+        :return: None
+        """
+        create_resp = client.post("/bookings", json=VALID_PAYLOAD)
+        booking_id = create_resp.json()["id"]
+        client.patch(f"/bookings/{booking_id}/status", json={"status": "confirmed"})
+        response = client.get(f"/bookings/{booking_id}/timeline")
+        assert response.status_code == 200
+        entries = response.json()
+        assert len(entries) == 2  # creation entry + this transition
+        assert entries[1]["old_status"] == "pending"
+        assert entries[1]["new_status"] == "confirmed"
+
+    def test_entry_contains_booking_fields(self, client):
+        """
+        Each timeline entry includes the booking's current details.
+
+        :return: None
+        """
+        create_resp = client.post("/bookings", json=VALID_PAYLOAD)
+        booking_id = create_resp.json()["id"]
+        client.patch(f"/bookings/{booking_id}/status", json={"status": "confirmed"})
+        response = client.get(f"/bookings/{booking_id}/timeline")
+        assert response.status_code == 200
+        entry = response.json()[0]
+        assert entry["booking_id"] == booking_id
+        assert entry["passenger_name"] == VALID_PAYLOAD["passenger_name"]
+        assert entry["flight_number"] == VALID_PAYLOAD["flight_number"]
+        assert entry["pickup_location"] == VALID_PAYLOAD["pickup_location"]
+        assert entry["dropoff_location"] == VALID_PAYLOAD["dropoff_location"]
+
+    def test_entries_ordered_chronologically(self, client):
+        """
+        Multiple transitions are returned oldest-first.
+
+        :return: None
+        """
+        create_resp = client.post("/bookings", json=VALID_PAYLOAD)
+        booking_id = create_resp.json()["id"]
+        client.patch(f"/bookings/{booking_id}/status", json={"status": "confirmed"})
+        client.patch(f"/bookings/{booking_id}/status", json={"status": "completed"})
+        response = client.get(f"/bookings/{booking_id}/timeline")
+        assert response.status_code == 200
+        entries = response.json()
+        assert len(entries) == 3  # creation + confirmed + completed
+        assert entries[1]["new_status"] == "confirmed"
+        assert entries[2]["new_status"] == "completed"
+
+    def test_missing_booking_returns_404(self, client):
+        """
+        Timeline request for a non-existent booking id returns HTTP 404.
+
+        :return: None
+        """
+        response = client.get("/bookings/999999/timeline")
+        assert response.status_code == 404

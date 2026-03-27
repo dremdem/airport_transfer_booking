@@ -8,6 +8,30 @@ import app.database.models as database_models
 
 target_metadata = database_models.Base.metadata
 
+# Views managed via explicit op.execute() in migration scripts.
+# Listing them here prevents autogenerate from treating them as missing tables
+# and emitting spurious DROP statements when running db-revision.
+_VIEWS = {"booking_timeline_view"}
+
+
+def include_object(object, name, type_, reflected, compare_to):
+    """
+    Filter out database views from Alembic autogenerate comparisons.
+
+    Without this, autogenerate sees views as reflected tables that are not
+    in the ORM metadata and generates DROP TABLE statements for them.
+
+    :param object: the SQLAlchemy schema object being compared
+    :param name: the object name
+    :param type_: the object type string (e.g. ``"table"``)
+    :param reflected: True if the object was reflected from the live DB
+    :param compare_to: the corresponding object in the metadata, or None
+    :return: False for known views, True for everything else
+    """
+    if type_ == "table" and name in _VIEWS:
+        return False
+    return True
+
 
 def _get_url() -> str:
     """
@@ -37,6 +61,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_object=include_object,
     )
     with alembic.context.begin_transaction():
         alembic.context.run_migrations()
@@ -51,6 +76,7 @@ def run_migrations_online() -> None:
         alembic.context.configure(
             connection=connection,
             target_metadata=target_metadata,
+            include_object=include_object,
         )
         with alembic.context.begin_transaction():
             alembic.context.run_migrations()

@@ -133,3 +133,45 @@ class TestStatusTransitions:
         service = make_service(booking)
         with pytest.raises(exceptions.InvalidStatusTransitionError):
             service.update_status(booking_id=1, new_status=to_status)
+
+
+class TestGetTimeline:
+    """Tests for BookingService.get_timeline."""
+
+    def test_delegates_to_repository(self):
+        """
+        get_timeline returns whatever the repository returns, unmodified.
+        The creation entry is guaranteed by BookingRepository.create(), not here.
+
+        :return: None
+        """
+        booking = make_booking()
+        entry = models.BookingTimelineEntry(
+            booking_id=1,
+            passenger_name="Alice Smith",
+            flight_number="BA123",
+            pickup_time=booking.pickup_time,
+            pickup_location="Heathrow T2",
+            dropoff_location="City Hotel",
+            current_status=enums.BookingStatus.PENDING,
+            old_status=None,
+            new_status=enums.BookingStatus.PENDING,
+            transitioned_at=booking.created_at,
+        )
+        repo = unittest.mock.MagicMock()
+        repo.get_by_id.return_value = booking
+        repo.get_timeline.return_value = [entry]
+        service = services.BookingService(repo)
+        assert service.get_timeline(booking_id=1) == [entry]
+
+    def test_raises_for_missing_booking(self):
+        """
+        get_timeline raises BookingNotFoundError when the booking does not exist.
+
+        :return: None
+        """
+        repo = unittest.mock.MagicMock()
+        repo.get_by_id.return_value = None
+        service = services.BookingService(repo)
+        with pytest.raises(exceptions.BookingNotFoundError):
+            service.get_timeline(booking_id=999)

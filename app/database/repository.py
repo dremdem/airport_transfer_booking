@@ -2,6 +2,7 @@
 
 import datetime
 
+import sqlalchemy
 import sqlalchemy.orm
 
 import app.database.models as db_models
@@ -66,6 +67,14 @@ class BookingRepository:
             updated_at=now,
         )
         self._db.add(orm_booking)
+        self._db.flush()
+        history = db_models.BookingStatusHistoryORM(
+            booking_id=orm_booking.id,
+            old_status=None,
+            new_status=booking_create.status.value,
+            created_at=now,
+        )
+        self._db.add(history)
         self._db.commit()
         self._db.refresh(orm_booking)
         return self._to_domain(orm_booking)
@@ -105,6 +114,44 @@ class BookingRepository:
             .all()
         )
         return [self._to_domain(b) for b in orm_bookings]
+
+    def get_timeline(self, booking_id: int) -> list[domain_models.BookingTimelineEntry]:
+        """
+        Fetch all status-transition rows for a booking from the timeline view.
+
+        Rows are ordered chronologically by history_id (insertion order).
+        Returns an empty list when the booking has no recorded transitions yet.
+        Existence checking is the caller's responsibility (BookingService does it).
+
+        :param booking_id: numeric booking identifier
+        :return: list of BookingTimelineEntry ordered from earliest to latest
+        """
+        result = self._db.execute(
+            sqlalchemy.text(
+                "SELECT booking_id, passenger_name, flight_number, pickup_time,"
+                " pickup_location, dropoff_location, current_status,"
+                " old_status, new_status, transitioned_at"
+                " FROM booking_timeline_view"
+                " WHERE booking_id = :booking_id"
+                " ORDER BY history_id ASC"
+            ),
+            {"booking_id": booking_id},
+        )
+        return [
+            domain_models.BookingTimelineEntry(
+                booking_id=row.booking_id,
+                passenger_name=row.passenger_name,
+                flight_number=row.flight_number,
+                pickup_time=row.pickup_time,
+                pickup_location=row.pickup_location,
+                dropoff_location=row.dropoff_location,
+                current_status=enums.BookingStatus(row.current_status),
+                old_status=enums.BookingStatus(row.old_status) if row.old_status is not None else None,
+                new_status=enums.BookingStatus(row.new_status),
+                transitioned_at=row.transitioned_at,
+            )
+            for row in result.mappings()
+        ]
 
     def update_status(
         self,
