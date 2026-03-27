@@ -93,11 +93,18 @@ transfer_booking_service/
 │   ├── unit/                       # Pure logic tests (no DB, no HTTP)
 │   │   ├── __init__.py
 │   │   └── test_booking_service.py
-│   ├── integration/                # Full-stack tests (HTTP → DB)
+│   ├── api/                        # HTTP endpoint tests (TestClient + real DB)
 │   │   ├── __init__.py
-│   │   ├── conftest.py             # Test DB setup, fixtures
-│   │   └── test_bookings_api.py
-│   └── conftest.py                 # Shared fixtures
+│   │   ├── conftest.py             # client fixture, autouse notification mock
+│   │   └── test_bookings.py        # Input validation, status codes, response shape
+│   ├── integration/                # Full-stack and repository-layer tests
+│   │   ├── __init__.py
+│   │   ├── conftest.py             # repo and client fixtures
+│   │   ├── test_bookings_api.py    # HTTP → domain → DB round-trip (8 named tests)
+│   │   ├── test_booking_repository.py  # Repository layer against real MySQL
+│   │   ├── test_notifications.py   # send_notification unit + DB assertions
+│   │   └── test_create_notification_e2e.py  # Full route → background task → DB
+│   └── conftest.py                 # Shared fixtures (db_engine, db_session)
 │
 ├── alembic.ini
 ├── docker-compose.yml
@@ -474,13 +481,15 @@ Test domain layer behaviour in isolation — no database, no HTTP, no I/O.
 | `test_invalid_status_transitions` | Disallowed transitions raise `InvalidStatusTransitionError` |
 | `test_create_booking_sets_pending` | New bookings always start as `pending` |
 
+### API tests (`tests/api/`)
+
+Test HTTP-layer concerns: status codes, response shape, input validation, and header behaviour. Use `TestClient` backed by the real test MySQL database (via `db_session` dependency override). `send_notification` is patched to a no-op via an `autouse` fixture so notification side-effects do not leak into HTTP-layer assertions.
+
 ### Integration tests (`tests/integration/`)
 
-Test the full request cycle: HTTP → route → service → repository → MySQL → response.
+Test the full request cycle and the repository layer against a real MySQL instance.
 
-Tests run against a real MySQL instance (from Docker Compose).
-
-**Isolation strategy:** Transaction rollback covers the main session (booking and booking_status_history writes), but it cannot reach the background task's independent `SessionLocal` commit. To prevent `notification_log` rows from leaking between tests and causing order-dependent failures, the notification writer is overridden with a no-op in the test fixture — either via FastAPI dependency override or by patching `integration.notifications.send_notification`. This keeps the rollback strategy intact and keeps integration tests focused on the HTTP → domain → DB flow rather than notification side-effects.
+**`test_bookings_api.py`** — HTTP → domain → DB round-trip. The 8 tests named in the original Phase 6 spec:
 
 | Test | What it validates |
 |------|-------------------|
@@ -492,6 +501,16 @@ Tests run against a real MySQL instance (from Docker Compose).
 | `test_invalid_transition_returns_422` | `completed → pending` returns 422 |
 | `test_get_nonexistent_booking_returns_404` | Proper error for missing resource |
 | `test_list_bookings_by_date` | Date filter returns correct subset |
+
+`send_notification` is suppressed with a module-scoped `autouse` fixture so notification writes do not affect booking assertions.
+
+**`test_booking_repository.py`** — `BookingRepository` directly against MySQL: create, get, update, timeline, history row counts.
+
+**`test_notifications.py`** — `send_notification` called directly; asserts `notification_log` row is written. `SessionLocal` is patched to the test engine.
+
+**`test_create_notification_e2e.py`** — Full wiring test: `POST /bookings` → `BackgroundTasks` → `send_notification` → DB row, no mocks anywhere.
+
+**Isolation strategy:** Row deletion after each test (`SET FOREIGN_KEY_CHECKS=0` + `DELETE` on all tables) keeps the schema intact while guaranteeing data isolation. `READ COMMITTED` isolation (set on all engines) ensures cross-session writes are visible immediately, eliminating fresh-connection workarounds in test assertions.
 
 ### Why this split matters
 
