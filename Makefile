@@ -27,7 +27,7 @@ migrate: ## Apply pending migrations
 	docker compose run --rm app alembic upgrade head
 
 seed-demo: ## Seed demo bookings into the live database (appends — safe to run multiple times)
-	docker compose run --rm app python scripts/seed_demo_data.py
+	docker compose run --rm app python -m scripts.seed_demo_data
 
 db-revision: ## Create a new migration (usage: make db-revision MSG="describe change")
 	docker compose run --rm app alembic revision --autogenerate -m "$(MSG)"

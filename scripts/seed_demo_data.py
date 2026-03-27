@@ -5,7 +5,7 @@ does not wipe the database first. Run it once before a demo session; run it agai
 if you want more rows.
 
 Usage (inside Docker):
-    docker compose run --rm app python scripts/seed_demo_data.py
+    docker compose run --rm app python -m scripts.seed_demo_data
 
 Usage via Makefile:
     make seed-demo
@@ -104,9 +104,9 @@ def seed() -> None:
     with SessionFactory() as session:
         repo = repository.BookingRepository(session)
         for spec in _BOOKINGS:
-            final_status: enums.BookingStatus = spec.pop("final_status")
+            final_status: enums.BookingStatus = spec["final_status"]
             booking_create = domain_models.BookingCreate(
-                **spec,
+                **{k: v for k, v in spec.items() if k != "final_status"},
                 status=enums.BookingStatus.PENDING,
             )
             booking = repo.create(booking_create)

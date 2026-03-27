@@ -32,8 +32,11 @@ Base URL used throughout: `http://localhost:8000`
 
 ## 1. Create a booking
 
+The response body is saved to a temp file so `BOOKING_ID` can be extracted while
+the HTTP status code is printed separately:
+
 ```bash
-BOOKING=$(curl -s -X POST http://localhost:8000/bookings \
+HTTP=$(curl -s -X POST http://localhost:8000/bookings \
   -H "Content-Type: application/json" \
   -d '{
     "passenger_name": "Ellie Arroway",
@@ -41,44 +44,50 @@ BOOKING=$(curl -s -X POST http://localhost:8000/bookings \
     "pickup_time":    "2025-09-15T06:30:00",
     "pickup_location":  "Heathrow T5",
     "dropoff_location": "Royal Observatory, Greenwich"
-  }')
+  }' \
+  -o /tmp/booking.json \
+  -w "%{http_code}")
 
-echo "$BOOKING" | jq .
+echo "→ HTTP $HTTP"
+jq . /tmp/booking.json
 
-BOOKING_ID=$(echo "$BOOKING" | jq -r '.id')
+BOOKING_ID=$(jq -r '.id' /tmp/booking.json)
 echo "Created booking id: $BOOKING_ID"
 ```
 
-**Expected:** HTTP 201 with the new booking body. `status` will be `"pending"`.
+**Expected:** `→ HTTP 201` with the new booking body. `status` will be `"pending"`.
 
 ---
 
 ## 2. Fetch a booking by id
 
 ```bash
-curl -s http://localhost:8000/bookings/$BOOKING_ID | jq .
+curl -s http://localhost:8000/bookings/$BOOKING_ID \
+  -w "\n→ HTTP %{http_code}\n" | jq .
 ```
 
-**Expected:** HTTP 200 with all booking fields.
+**Expected:** `→ HTTP 200` with all booking fields.
 
 ---
 
 ## 3. List bookings by date
 
 ```bash
-curl -s "http://localhost:8000/bookings?date=2025-09-15" | jq .
+curl -s "http://localhost:8000/bookings?date=2025-09-15" \
+  -w "\n→ HTTP %{http_code}\n" | jq .
 ```
 
-**Expected:** HTTP 200 — array of bookings whose `pickup_time` falls on 2025-09-15.
+**Expected:** `→ HTTP 200` — array of bookings whose `pickup_time` falls on 2025-09-15.
 The booking created above should appear in the list.
 
 List a date with no bookings:
 
 ```bash
-curl -s "http://localhost:8000/bookings?date=2099-01-01" | jq .
+curl -s "http://localhost:8000/bookings?date=2099-01-01" \
+  -w "\n→ HTTP %{http_code}\n" | jq .
 ```
 
-**Expected:** HTTP 200 — empty array `[]`.
+**Expected:** `→ HTTP 200` — empty array `[]`.
 
 ---
 
@@ -87,10 +96,11 @@ curl -s "http://localhost:8000/bookings?date=2099-01-01" | jq .
 ```bash
 curl -s -X PATCH http://localhost:8000/bookings/$BOOKING_ID/status \
   -H "Content-Type: application/json" \
-  -d '{"status": "confirmed"}' | jq .
+  -d '{"status": "confirmed"}' \
+  -w "\n→ HTTP %{http_code}\n" | jq .
 ```
 
-**Expected:** HTTP 200, `status` is now `"confirmed"`.
+**Expected:** `→ HTTP 200`, `status` is now `"confirmed"`.
 
 ---
 
@@ -101,10 +111,11 @@ A booking must be `confirmed` before it can be `completed`.
 ```bash
 curl -s -X PATCH http://localhost:8000/bookings/$BOOKING_ID/status \
   -H "Content-Type: application/json" \
-  -d '{"status": "completed"}' | jq .
+  -d '{"status": "completed"}' \
+  -w "\n→ HTTP %{http_code}\n" | jq .
 ```
 
-**Expected:** HTTP 200, `status` is now `"completed"`.
+**Expected:** `→ HTTP 200`, `status` is now `"completed"`.
 
 ---
 
@@ -113,7 +124,7 @@ curl -s -X PATCH http://localhost:8000/bookings/$BOOKING_ID/status \
 Create a fresh booking to demonstrate cancellation (the one above is already completed):
 
 ```bash
-CANCEL_ID=$(curl -s -X POST http://localhost:8000/bookings \
+HTTP=$(curl -s -X POST http://localhost:8000/bookings \
   -H "Content-Type: application/json" \
   -d '{
     "passenger_name":   "Alex Kamal",
@@ -121,24 +132,31 @@ CANCEL_ID=$(curl -s -X POST http://localhost:8000/bookings \
     "pickup_time":      "2025-09-17T16:30:00",
     "pickup_location":  "Gatwick North Terminal",
     "dropoff_location": "Wembley Stadium"
-  }' | jq -r '.id')
+  }' \
+  -o /tmp/cancel_booking.json \
+  -w "%{http_code}")
+
+echo "→ HTTP $HTTP"
+CANCEL_ID=$(jq -r '.id' /tmp/cancel_booking.json)
 
 curl -s -X PATCH http://localhost:8000/bookings/$CANCEL_ID/status \
   -H "Content-Type: application/json" \
-  -d '{"status": "cancelled"}' | jq .
+  -d '{"status": "cancelled"}' \
+  -w "\n→ HTTP %{http_code}\n" | jq .
 ```
 
-**Expected:** HTTP 200, `status` is `"cancelled"`.
+**Expected:** `→ HTTP 201` for the create, then `→ HTTP 200` and `status` is `"cancelled"`.
 
 ---
 
 ## 7. Fetch the booking timeline
 
 ```bash
-curl -s http://localhost:8000/bookings/$BOOKING_ID/timeline | jq .
+curl -s http://localhost:8000/bookings/$BOOKING_ID/timeline \
+  -w "\n→ HTTP %{http_code}\n" | jq .
 ```
 
-**Expected:** HTTP 200 — array of timeline entries ordered oldest first.
+**Expected:** `→ HTTP 200` — array of timeline entries ordered oldest first.
 For the booking created in step 1 and driven through confirmed → completed, you will
 see three entries:
 
@@ -157,10 +175,11 @@ A `completed` booking cannot transition to any other status.
 ```bash
 curl -s -X PATCH http://localhost:8000/bookings/$BOOKING_ID/status \
   -H "Content-Type: application/json" \
-  -d '{"status": "pending"}' | jq .
+  -d '{"status": "pending"}' \
+  -w "\n→ HTTP %{http_code}\n" | jq .
 ```
 
-**Expected:** HTTP 422 with a `detail` field describing the disallowed transition:
+**Expected:** `→ HTTP 422` with a `detail` field describing the disallowed transition:
 
 ```json
 {
@@ -173,10 +192,11 @@ curl -s -X PATCH http://localhost:8000/bookings/$BOOKING_ID/status \
 ## 9. Fetch a non-existent booking
 
 ```bash
-curl -s http://localhost:8000/bookings/999999 | jq .
+curl -s http://localhost:8000/bookings/999999 \
+  -w "\n→ HTTP %{http_code}\n" | jq .
 ```
 
-**Expected:** HTTP 404:
+**Expected:** `→ HTTP 404`:
 
 ```json
 {
@@ -197,7 +217,7 @@ set -euo pipefail
 BASE=http://localhost:8000
 
 echo "── Create booking ──────────────────────────"
-B=$(curl -s -X POST $BASE/bookings \
+HTTP=$(curl -s -X POST $BASE/bookings \
   -H "Content-Type: application/json" \
   -d '{
     "passenger_name":   "Naomi Nagata",
@@ -205,28 +225,35 @@ B=$(curl -s -X POST $BASE/bookings \
     "pickup_time":      "2025-09-16T09:15:00",
     "pickup_location":  "London City Airport",
     "dropoff_location": "Canary Wharf, One Canada Square"
-  }')
-ID=$(echo "$B" | jq -r '.id')
-echo "$B" | jq '{id, status}'
+  }' \
+  -o /tmp/booking.json \
+  -w "%{http_code}")
+echo "→ HTTP $HTTP"
+ID=$(jq -r '.id' /tmp/booking.json)
+jq '{id, status}' /tmp/booking.json
 
 echo "── Confirm ─────────────────────────────────"
 curl -s -X PATCH $BASE/bookings/$ID/status \
   -H "Content-Type: application/json" \
-  -d '{"status":"confirmed"}' | jq '{id, status}'
+  -d '{"status":"confirmed"}' \
+  -w "\n→ HTTP %{http_code}\n" | jq '{id, status}'
 
 echo "── Complete ────────────────────────────────"
 curl -s -X PATCH $BASE/bookings/$ID/status \
   -H "Content-Type: application/json" \
-  -d '{"status":"completed"}' | jq '{id, status}'
+  -d '{"status":"completed"}' \
+  -w "\n→ HTTP %{http_code}\n" | jq '{id, status}'
 
 echo "── Timeline ────────────────────────────────"
 curl -s $BASE/bookings/$ID/timeline \
+  -w "\n→ HTTP %{http_code}\n" \
   | jq '.[] | {old_status, new_status, transitioned_at}'
 
 echo "── Invalid transition (expect 422) ─────────"
 curl -s -X PATCH $BASE/bookings/$ID/status \
   -H "Content-Type: application/json" \
-  -d '{"status":"pending"}' | jq .
+  -d '{"status":"pending"}' \
+  -w "\n→ HTTP %{http_code}\n" | jq .
 
 echo "── Done ────────────────────────────────────"
 ```
