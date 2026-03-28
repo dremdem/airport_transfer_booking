@@ -28,6 +28,36 @@
   opacity: 0.7;
 }
 
+.modeTabs {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.modeTab {
+  flex: 1;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 0.45rem 0;
+  border-radius: var(--radius-sm);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: border-color var(--ease), color var(--ease), background var(--ease);
+}
+
+.modeTab:hover {
+  border-color: var(--border-hi);
+  color: var(--text);
+}
+
+.modeTabActive {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: var(--gold-dim);
+}
+
 .searchRow {
   display: flex;
   gap: 0.75rem;
