@@ -8,13 +8,23 @@ interface Props {
   selectedId?: number
 }
 
+type Mode = 'date' | 'id'
+
 export default function BookingList({ onSelect, selectedId }: Props) {
+  const [mode, setMode] = useState<Mode>('date')
   const [date, setDate] = useState('')
+  const [bookingId, setBookingId] = useState('')
   const [bookings, setBookings] = useState<Booking[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const search = async (e: React.FormEvent) => {
+  const switchMode = (next: Mode) => {
+    setMode(next)
+    setBookings(null)
+    setError(null)
+  }
+
+  const searchByDate = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!date) return
     setLoading(true)
@@ -29,25 +39,75 @@ export default function BookingList({ onSelect, selectedId }: Props) {
     }
   }
 
+  const searchById = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const id = parseInt(bookingId, 10)
+    if (!id) return
+    setLoading(true)
+    setError(null)
+    setBookings(null)
+    try {
+      const booking = await api.getBooking(id)
+      onSelect(booking)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Unexpected error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className={styles.container}>
       <div className={styles.heading}>
         <span className={styles.ornament}>✦</span>
-        <h2>Bookings by Date</h2>
+        <h2>Find a Booking</h2>
         <span className={styles.ornament}>✦</span>
       </div>
 
-      <form className={styles.searchRow} onSubmit={search}>
-        <input
-          type="date"
-          value={date}
-          onChange={e => setDate(e.target.value)}
-          required
-        />
-        <button type="submit" disabled={loading}>
-          {loading ? '…' : 'Search'}
+      <div className={styles.modeTabs}>
+        <button
+          type="button"
+          className={`${styles.modeTab} ${mode === 'date' ? styles.modeTabActive : ''}`}
+          onClick={() => switchMode('date')}
+        >
+          By Date
         </button>
-      </form>
+        <button
+          type="button"
+          className={`${styles.modeTab} ${mode === 'id' ? styles.modeTabActive : ''}`}
+          onClick={() => switchMode('id')}
+        >
+          By ID
+        </button>
+      </div>
+
+      {mode === 'date' ? (
+        <form className={styles.searchRow} onSubmit={searchByDate}>
+          <input
+            type="date"
+            value={date}
+            onChange={e => setDate(e.target.value)}
+            required
+          />
+          <button type="submit" disabled={loading}>
+            {loading ? '…' : 'Search'}
+          </button>
+        </form>
+      ) : (
+        <form className={styles.searchRow} onSubmit={searchById}>
+          <input
+            type="number"
+            min="1"
+            placeholder="Booking ID"
+            value={bookingId}
+            onChange={e => setBookingId(e.target.value)}
+            required
+          />
+          <button type="submit" disabled={loading}>
+            {loading ? '…' : 'Find'}
+          </button>
+        </form>
+      )}
 
       {error && <p className={styles.error}>{error}</p>}
 
