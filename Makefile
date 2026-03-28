@@ -37,7 +37,7 @@ db-drop: ## Roll back ALL migrations and drop the schema (destructive — data a
 
 db-clear: ## Delete all booking data while keeping the schema intact (safe for demo resets)
 	docker compose exec db mysql -uroot -proot transfer_bookings \
-	  -e "SET FOREIGN_KEY_CHECKS=0; TRUNCATE booking_status_history; TRUNCATE booking; SET FOREIGN_KEY_CHECKS=1;"
+	  -e "SET FOREIGN_KEY_CHECKS=0; TRUNCATE notification_log; TRUNCATE booking_status_history; TRUNCATE booking; SET FOREIGN_KEY_CHECKS=1;"
 
 db-connect: ## Open an interactive MySQL shell in the running db container
 	docker compose exec db mysql -uroot -proot transfer_bookings
