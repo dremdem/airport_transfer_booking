@@ -118,8 +118,11 @@ make migrate
 # Create a new migration from ORM changes
 make db-revision MSG="add column xyz"
 
-# Downgrade all migrations (wipes the schema)
-make db-reset
+# Delete all booking data while keeping the schema (safe for demo resets)
+make db-clear
+
+# Roll back ALL migrations and drop the schema (destructive)
+make db-drop
 ```
 
 ---
@@ -139,7 +142,8 @@ make db-reset
 | `make format` | Run the ruff formatter |
 | `make check` | Alias for `make lint` — run all code quality checks |
 | `make db-revision MSG="..."` | Generate a new migration |
-| `make db-reset` | Downgrade all migrations |
+| `make db-clear` | Delete all booking data, keep schema (safe for demo resets) |
+| `make db-drop` | Roll back all migrations and drop the schema (destructive) |
 | `make db-connect` | Open an interactive MySQL shell |
 
 ---

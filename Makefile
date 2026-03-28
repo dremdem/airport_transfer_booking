@@ -1,4 +1,4 @@
-.PHONY: help build up down lint format check test migrate seed-demo db-revision db-reset db-connect
+.PHONY: help build up down lint format check test migrate seed-demo db-revision db-drop db-clear db-connect
 
 help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -32,8 +32,12 @@ seed-demo: ## Seed demo bookings into the live database (appends — safe to run
 db-revision: ## Create a new migration (usage: make db-revision MSG="describe change")
 	docker compose run --rm app alembic revision --autogenerate -m "$(MSG)"
 
-db-reset: ## Downgrade all migrations (wipe schema)
+db-drop: ## Roll back ALL migrations and drop the schema (destructive — data and tables are lost)
 	docker compose run --rm app alembic downgrade base
+
+db-clear: ## Delete all booking data while keeping the schema intact (safe for demo resets)
+	docker compose exec db mysql -uroot -proot transfer_bookings \
+	  -e "SET FOREIGN_KEY_CHECKS=0; TRUNCATE notification_log; TRUNCATE booking_status_history; TRUNCATE booking; SET FOREIGN_KEY_CHECKS=1;"
 
 db-connect: ## Open an interactive MySQL shell in the running db container
 	docker compose exec db mysql -uroot -proot transfer_bookings
