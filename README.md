@@ -30,6 +30,8 @@ The API is now available at <http://localhost:8000>.
 
 Interactive docs (Swagger UI): <http://localhost:8000/docs>
 
+Frontend UI: <http://localhost:3000>
+
 ### Environment variables
 
 `docker-compose.yml` already sets the required environment variables directly, so no `.env` file is needed to run the stack with Docker Compose.
@@ -50,9 +52,7 @@ Interactive docs (Swagger UI): <http://localhost:8000/docs>
 
 A minimal SPA (React + TypeScript + Vite) lives in `frontend/`. It covers all booking flows: create, list by date, booking details, timeline, and status updates.
 
-### Via Docker Compose (recommended)
-
-The frontend is part of the full stack. `make up` starts it alongside the API and database:
+The frontend is part of the full stack and starts automatically with `make up`. On the first run, or after any frontend dependency or Dockerfile change, rebuild the image first:
 
 ```bash
 make build   # first time, or after frontend dependency/Dockerfile changes
@@ -60,19 +60,6 @@ make up && make migrate
 ```
 
 Open <http://localhost:3000>. nginx serves the built app and proxies `/api/*` to the `app` service — no CORS, no separate origin.
-
-### Local dev (Vite dev server)
-
-**Prerequisites:** Node.js 18+
-
-```bash
-make up && make migrate   # backend must be running
-cd frontend
-npm install
-npm run dev
-```
-
-Open <http://localhost:5173>. The Vite dev server proxies `/api` requests to `http://localhost:8000`.
 
 ---
 
@@ -90,13 +77,13 @@ This inserts 7 bookings (2 pending, 2 confirmed, 2 completed, 1 cancelled) and p
 ```
 Seeding demo data…
 
-  [  pending]  #1    Ellie Arroway — Heathrow T5 → Royal Observatory, Greenwich
-  [  pending]  #2    Duncan Idaho — Gatwick South Terminal → Imperial War Museum
-  [confirmed]  #3    Naomi Nagata — London City Airport → Canary Wharf, One Canada Square
-  [confirmed]  #4    Roy Batty — Stansted Airport → Tannhäuser Gate Hotel, Southwark
-  [completed]  #5    Amos Burton — Luton Airport → East India Club, St James's Square
-  [completed]  #6    Chrisjen Avasarala — Heathrow T3 → Foreign, Commonwealth & Development Office
-  [cancelled]  #7    Alex Kamal — Gatwick North Terminal → Wembley Stadium
+  [  pending]  #1    2025-09-15 06:30  Ellie Arroway — Heathrow T5 → Royal Observatory, Greenwich
+  [  pending]  #2    2025-09-15 14:00  Duncan Idaho — Gatwick South Terminal → Imperial War Museum
+  [confirmed]  #3    2025-09-16 09:15  Naomi Nagata — London City Airport → Canary Wharf, One Canada Square
+  [confirmed]  #4    2025-09-16 21:00  Roy Batty — Stansted Airport → Tannhäuser Gate Hotel, Southwark
+  [completed]  #5    2025-09-14 07:45  Amos Burton — Luton Airport → East India Club, St James's Square
+  [completed]  #6    2025-09-13 11:00  Chrisjen Avasarala — Heathrow T3 → Foreign, Commonwealth & Development Office
+  [cancelled]  #7    2025-09-17 16:30  Alex Kamal — Gatwick North Terminal → Wembley Stadium
 
 ✓ Seeded 7 demo bookings.
 ```

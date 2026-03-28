@@ -116,6 +116,7 @@ def seed() -> None:
                 current_status = step
             print(
                 f"  [{booking.status.value:>9}]  #{booking.id:<5} "
+                f"{booking.pickup_time.strftime('%Y-%m-%d %H:%M')}  "
                 f"{booking.passenger_name} — {booking.pickup_location} → {booking.dropoff_location}"
             )
     print(f"\n✓ Seeded {len(_BOOKINGS)} demo bookings.")
